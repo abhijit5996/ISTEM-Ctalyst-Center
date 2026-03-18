@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use App\Models\Booking;
-
-// ⚠️ Only keep these if you actually created them
-// use App\Services\SlotService;
-// use App\Services\QueueService;
-// use Illuminate\Support\Facades\Mail;
-// use App\Mail\BookingApprovedMail;
+use App\Models\Instrument;
+use App\Services\SlotService;
+use App\Mail\BookingApprovedMail;
+use App\Mail\BookingRejectedMail;
 
 class BookingController extends Controller
 {
@@ -19,9 +19,9 @@ class BookingController extends Controller
         $validated = $request->validate([
             'instrument_id' => 'required|string|exists:instruments,id',
             'name' => 'required|string|max:255',
+            'email' => 'required|email',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'status' => 'sometimes|in:pending,approved,rejected,completed',
             'user_type' => 'sometimes|in:student,employee',
             'identifier' => 'sometimes|string|max:255',
             'department' => 'sometimes|string|max:255',
@@ -30,10 +30,18 @@ class BookingController extends Controller
             'confidential_project' => 'sometimes|boolean',
         ]);
 
+        if (SlotService::hasConflict($validated['instrument_id'], $validated['start_date'], $validated['end_date'])) {
+            return response()->json([
+                'status' => 'conflict',
+                'message' => 'slot_already_booked',
+            ], 409);
+        }
+
         $booking = Booking::create([
             'id' => uniqid('B'),
             'instrument_id' => $validated['instrument_id'],
             'name' => $validated['name'],
+            'user_email' => $validated['email'],
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
             'user_type' => $validated['user_type'] ?? 'student',
@@ -42,7 +50,7 @@ class BookingController extends Controller
             'program_or_school' => $validated['program_or_school'] ?? null,
             'project_title' => $validated['project_title'] ?? null,
             'confidential_project' => $validated['confidential_project'] ?? false,
-            'status' => $validated['status'] ?? 'pending',
+            'status' => 'pending',
         ]);
 
         return response()->json([
@@ -53,28 +61,52 @@ class BookingController extends Controller
 
     public function approve($id)
     {
-        DB::beginTransaction();
-
-        try {
+            try {
             $booking = Booking::findOrFail($id);
 
             $booking->status = 'approved';
             $booking->save();
 
-            // ❌ REMOVE if not created
-            // Mail::to('user@email.com')
-            //     ->send(new BookingApprovedMail($booking));
-
-            // ❌ REMOVE if not created
-            // QueueService::processQueue($booking->instrument_id);
-
-            DB::commit();
+            try {
+                Mail::to($booking->user_email)->send(new BookingApprovedMail($booking));
+            } catch (\Exception $mailException) {
+                Log::warning('Booking approval mail send failed (sync), trying queued', ['booking_id' => $id, 'error' => $mailException->getMessage()]);
+                try {
+                    Mail::to($booking->user_email)->queue(new BookingApprovedMail($booking));
+                } catch (\Exception $queueException) {
+                    Log::error('Booking approval mail queue failed', ['booking_id' => $id, 'error' => $queueException->getMessage()]);
+                }
+            }
 
             return response()->json(['success' => true]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function reject($id)
+    {
+            try {
+            $booking = Booking::findOrFail($id);
+
+            $booking->status = 'rejected';
+            $booking->save();
+
+            try {
+                Mail::to($booking->user_email)->send(new BookingRejectedMail($booking));
+            } catch (\Exception $mailException) {
+                Log::warning('Booking rejection mail send failed (sync), trying queued', ['booking_id' => $id, 'error' => $mailException->getMessage()]);
+                try {
+                    Mail::to($booking->user_email)->queue(new BookingRejectedMail($booking));
+                } catch (\Exception $queueException) {
+                    Log::error('Booking rejection mail queue failed', ['booking_id' => $id, 'error' => $queueException->getMessage()]);
+                }
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
@@ -88,12 +120,31 @@ class BookingController extends Controller
         ]);
     }
 
-    public function reject($id)
+    public function adminBookings()
     {
-        $booking = Booking::findOrFail($id);
-        $booking->status = 'rejected';
-        $booking->save();
+        $bookings = Booking::orderBy('created_at', 'desc')->get();
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'data' => $bookings,
+        ]);
+    }
+
+    public function dashboard()
+    {
+        $totalInstruments = Instrument::count();
+        $totalBookings = Booking::count();
+        $pendingRequests = Booking::where('status', 'pending')->count();
+        $approvedBookings = Booking::where('status', 'approved')->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_instruments' => $totalInstruments,
+                'total_bookings' => $totalBookings,
+                'pending_requests' => $pendingRequests,
+                'approved_bookings' => $approvedBookings,
+            ],
+        ]);
     }
 }

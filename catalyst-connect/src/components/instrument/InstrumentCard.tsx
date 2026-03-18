@@ -1,5 +1,5 @@
 import { Instrument } from "@/types/instrument";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useBookingStore } from "@/store/bookingStore";
@@ -19,6 +19,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 export function InstrumentCard({ instrument, index = 0 }: { instrument: Instrument; index?: number }) {
   const addToBag = useBookingStore((s) => s.addToBag);
   const bag = useBookingStore((s) => s.bag);
+  const navigate = useNavigate();
 
   const inBag = bag.some((b) => b.instrument.id === instrument.id);
 
@@ -34,7 +35,7 @@ export function InstrumentCard({ instrument, index = 0 }: { instrument: Instrume
     description: instrument?.description || "No description",
     category: instrument?.category || "General",
     location: instrument?.location || "N/A",
-    usageCost: instrument?.usage_cost || "N/A",
+    usageCost: instrument?.usageCost || "N/A",
     image: instrument?.image || "/placeholder.svg",
     status: instrument?.status || "unknown",
   };
@@ -120,6 +121,20 @@ export function InstrumentCard({ instrument, index = 0 }: { instrument: Instrume
             {inBag ? "In Bag" : "Add to Bag"}
           </Button>
         </div>
+
+        {safe.status === 'booked' && (
+          <div className="pt-2 space-y-2">
+            <div className="text-xs text-red-600 font-medium">Already Booked</div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-full text-xs"
+              onClick={() => navigate('/booking-form')}
+            >
+              Join Queue
+            </Button>
+          </div>
+        )}
       </div>
     </motion.div>
   );

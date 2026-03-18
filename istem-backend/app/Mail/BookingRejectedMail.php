@@ -6,7 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class BookingApprovedMail extends Mailable
+class BookingRejectedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -20,7 +20,7 @@ class BookingApprovedMail extends Mailable
     public function build()
     {
         return $this->from(config('mail.from.address'), config('mail.from.name'))
-            ->subject('Instrument Booking Approved')
-            ->view('emails.approved');
+            ->subject('Instrument Booking Rejected')
+            ->view('emails.rejected');
     }
 }

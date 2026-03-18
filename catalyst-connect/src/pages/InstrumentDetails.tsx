@@ -117,9 +117,15 @@ const InstrumentDetails = () => {
     toast.success(`${instrument.name} added to booking bag.`);
   };
 
-  const handleJoinQueue = () => {
-    const pos = joinQueue(instrument.id, "Current User");
-    toast.success(`Joined waiting queue at position #${pos}`);
+  const handleJoinQueue = async () => {
+    // Fill with the logged-in user email as available (static placeholder used here)
+    const success = await joinQueue(instrument.id, "Current User", "current.user@example.com");
+
+    if (success) {
+      toast.success("Joined waiting queue successfully.");
+    } else {
+      toast.error("Could not join queue. Please try again.");
+    }
   };
 
   const isBooked = instrument.status === "booked";

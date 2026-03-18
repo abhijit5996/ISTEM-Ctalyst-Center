@@ -18,16 +18,21 @@ const BookingForm = () => {
   const bag = useBookingStore((s) => s.bag);
   const submitBooking = useBookingStore((s) => s.submitBooking);
   const joinQueue = useBookingStore((s) => s.joinQueue);
+  const firstItem = bag[0];
   const [userType, setUserType] = useState<UserType>("student");
   const [isConfidential, setIsConfidential] = useState(false);
 
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [enrollment, setEnrollment] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [department, setDepartment] = useState("");
   const [program, setProgram] = useState("");
   const [school, setSchool] = useState("");
   const [projectTitle, setProjectTitle] = useState("");
+  const [slotConflict, setSlotConflict] = useState(false);
+  const [queueMode, setQueueMode] = useState(false);
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
 
   useEffect(() => {
     if (bag.length === 0) {
@@ -41,56 +46,56 @@ const BookingForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !department) {
+
+    if (!name || !department || !email) {
       toast.error("Please fill in all required fields.");
       return;
     }
 
-    const firstItem = bag[0];
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
 
     try {
-      const requestId = await submitBooking(
-        userType === "student"
-          ? {
-              userType: "student",
-              name,
-              enrollmentNumber: enrollment,
-              department,
-              program,
-              instrumentId: firstItem.instrument.id,
-              instrumentName: firstItem.instrument.name,
-              fromDate: firstItem.fromDate,
-              toDate: firstItem.toDate,
-              projectTitle,
-              isConfidential,
-            }
-          : {
-              userType: "employee",
-              name,
-              employeeId,
-              department,
-              school,
-              instrumentId: firstItem.instrument.id,
-              instrumentName: firstItem.instrument.name,
-              fromDate: firstItem.fromDate,
-              toDate: firstItem.toDate,
-            }
-      );
+      const payload = userType === "student"
+        ? {
+            userType: "student",
+            name,
+            email,
+            enrollmentNumber: enrollment,
+            department,
+            program,
+            instrumentId: firstItem.instrument.id,
+            instrumentName: firstItem.instrument.name,
+            fromDate: firstItem.fromDate,
+            toDate: firstItem.toDate,
+            projectTitle,
+            isConfidential,
+          }
+        : {
+            userType: "employee",
+            name,
+            email,
+            employeeId,
+            department,
+            school,
+            instrumentId: firstItem.instrument.id,
+            instrumentName: firstItem.instrument.name,
+            fromDate: firstItem.fromDate,
+            toDate: firstItem.toDate,
+          };
+
+      const requestId = await submitBooking(payload);
 
       toast.success("Booking request submitted!");
       navigate(`/booking-confirmation/${requestId}`);
     } catch (err: any) {
       if (err.message === "slot_unavailable") {
-        const confirmQueue = window.confirm("Slot unavailable. Join queue?");
-        if (confirmQueue) {
-          const queued = await joinQueue(firstItem.instrument.id, name);
-          if (queued) {
-            toast.success("Added to queue");
-            navigate(`/booking-confirmation/queue`);
-          } else {
-            toast.error("Unable to join queue. Please try again later.");
-          }
-        }
+        setSlotConflict(true);
+        setQueueMode(true);
+        toast.error("Slot already booked. Please join the queue.");
       } else {
         toast.error("Failed to submit booking request. Please try again.");
       }
@@ -123,6 +128,11 @@ const BookingForm = () => {
             <motion.div variants={fadeInUp} className="space-y-2">
               <Label htmlFor="name">{userType === "student" ? "Student Name" : "Employee Name"} *</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required className="bg-card" />
+            </motion.div>
+
+            <motion.div variants={fadeInUp} className="space-y-2">
+              <Label htmlFor="email">Email Address *</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-card" />
             </motion.div>
 
             <AnimatePresence mode="wait">
@@ -221,6 +231,29 @@ const BookingForm = () => {
                 </div>
               ))}
             </motion.div>
+
+            {slotConflict && (
+              <motion.div variants={fadeInUp} className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3">
+                <p className="text-sm font-medium">Already Booked</p>
+                <p className="text-xs">This slot is already occupied by an approved booking. You can join the queue to wait for availability.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-2 w-full"
+                  onClick={async () => {
+                    const queued = await joinQueue(firstItem.instrument.id, name, email);
+                    if (queued) {
+                      toast.success('You are queued successfully.');
+                      navigate('/booking-confirmation/queue');
+                    } else {
+                      toast.error('Unable to join queue. Please try again later.');
+                    }
+                  }}
+                >
+                  Join Queue
+                </Button>
+              </motion.div>
+            )}
 
             <motion.div variants={fadeInUp}>
               <Button type="submit" className="w-full transition-transform active:scale-[0.98]" size="lg">

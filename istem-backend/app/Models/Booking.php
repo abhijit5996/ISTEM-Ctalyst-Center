@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Instrument;
 
 class Booking extends Model
 {
@@ -21,6 +22,12 @@ class Booking extends Model
         'confidential_project',
         'start_date',
         'end_date',
+        'user_email',
         'status'
     ];
+
+    public function instrument()
+    {
+        return $this->belongsTo(Instrument::class, 'instrument_id');
+    }
 }

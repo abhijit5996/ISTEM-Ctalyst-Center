@@ -21,3 +21,14 @@ export const approveBooking = (id) =>
 
 export const rejectBooking = (id) =>
   API.put(`/bookings/${id}/reject`);
+
+export const getAdminBookings = async () => {
+  const res = await API.get('/admin/bookings');
+  if (res?.data && Array.isArray(res.data.data)) {
+    return res.data.data;
+  }
+  return [];
+};
+
+export const getAdminDashboard = () =>
+  API.get('/admin/dashboard');

@@ -11,9 +11,15 @@ const AdminBookings = () => {
   const rejectBooking = useBookingStore((s) => s.rejectBooking);
   const [emailModal, setEmailModal] = useState<string | null>(null);
 
-  const handleApprove = (id: string) => {
-    approveBooking(id);
-    setEmailModal(id);
+  const handleApprove = async (id: string) => {
+    try {
+      await approveBooking(id);
+      setEmailModal(id);
+      toast.success(`${id} approved!`);
+    } catch (err) {
+      console.error("approveBooking failed", err);
+      toast.error(`Failed to approve ${id}.`);
+    }
   };
 
   return (
@@ -44,7 +50,7 @@ const AdminBookings = () => {
                 <Button size="sm" variant="outline" className="flex-1 h-8 text-xs text-status-available border-status-available/30" onClick={() => handleApprove(r.id)}>
                   <Check className="h-3 w-3 mr-1" /> Approve
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1 h-8 text-xs text-status-booked border-status-booked/30" onClick={() => { rejectBooking(r.id); toast.info(`${r.id} rejected.`); }}>
+                <Button size="sm" variant="outline" className="flex-1 h-8 text-xs text-status-booked border-status-booked/30" onClick={async () => { try { await rejectBooking(r.id); toast.info(`${r.id} rejected.`); } catch (err) { console.error(err); toast.error(`Failed to reject ${r.id}`); } }}>
                   <X className="h-3 w-3 mr-1" /> Reject
                 </Button>
               </div>

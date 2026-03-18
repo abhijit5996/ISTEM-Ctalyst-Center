@@ -18,7 +18,9 @@ class QueueController extends Controller
 
         $queue = Queue::create([
             'instrument_id' => $request->instrument_id,
+            'booking_id' => $request->booking_id ?? null,
             'user_name' => $request->user_name,
+            'email' => $request->email ?? null,
             'position' => $position
         ]);
 

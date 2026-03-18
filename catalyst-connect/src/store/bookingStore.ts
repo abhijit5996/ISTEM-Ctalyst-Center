@@ -1,9 +1,12 @@
 import { create } from "zustand";
 import { BagItem, BookingRequest, Instrument } from "@/types/instrument";
-import { getInstruments } from "@/api/services/instrumentService";
+import { getInstruments, createInstrument, deleteInstrument as deleteInstrumentAPI } from "@/api/services/instrumentService";
 import {
   getBookings,
   createBooking,
+  approveBooking as approveBookingAPI,
+  rejectBooking as rejectBookingAPI,
+  getAdminBookings,
 } from "@/api/services/bookingService";
 import { joinQueue as joinQueueAPI } from "@/api/services/queueService";
 
@@ -24,10 +27,10 @@ interface BookingStore {
 
   submitBooking: (request: Record<string, any>) => Promise<string>;
 
-  approveBooking: (id: string) => void;
-  rejectBooking: (id: string) => void;
+  approveBooking: (id: string) => Promise<void>;
+  rejectBooking: (id: string) => Promise<void>;
 
-  joinQueue: (instrumentId: string, userName: string) => Promise<boolean>;
+  joinQueue: (instrumentId: string, userName: string, email: string) => Promise<boolean>;
 
   addInstrument: (instrument: Instrument) => void;
   deleteInstrument: (id: string) => void;
@@ -46,7 +49,7 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
     set({ loadingBookings: true });
 
     try {
-      const bookings = await getBookings();
+      const bookings = await getAdminBookings();
       console.log("BOOKINGS API:", bookings);
 
       set({
@@ -97,39 +100,60 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
     try {
       const res = await createBooking({
         instrument_id: data.instrumentId,
+        name: data.name,
+        email: data.email,
         start_date: data.fromDate,
         end_date: data.toDate,
+        user_type: data.userType,
+        identifier: data.enrollmentNumber || data.employeeId || null,
+        department: data.department,
+        program_or_school: data.program || data.school || null,
+        project_title: data.projectTitle || null,
+        confidential_project: data.isConfidential || false,
       });
 
-      return res.data?.id || "success";
+      if (res?.data?.data) {
+        set((state) => ({
+          bookingRequests: [...state.bookingRequests, res.data.data],
+        }));
+      }
+
+      return res.data?.data?.id || 'success';
     } catch (err: any) {
-      if (err.response?.data?.message === "slot_unavailable") {
-        throw new Error("slot_unavailable");
+      const conflictMessage = err.response?.data?.message;
+      if (err.response?.status === 409 || conflictMessage === 'slot_already_booked' || conflictMessage === 'slot_unavailable') {
+        throw new Error('slot_unavailable');
       }
       throw err;
     }
   },
 
-  approveBooking: (id) =>
-    set((state) => ({
-      bookingRequests: state.bookingRequests.map((r) =>
-        r.id === id ? { ...r, status: "approved" } : r
-      ),
-    })),
+  approveBooking: async (id) => {
+    try {
+      await approveBookingAPI(id);
+      await get().fetchBookings();
+    } catch (err) {
+      console.error("Error approving booking", err);
+      throw err;
+    }
+  },
 
-  rejectBooking: (id) =>
-    set((state) => ({
-      bookingRequests: state.bookingRequests.map((r) =>
-        r.id === id ? { ...r, status: "rejected" } : r
-      ),
-    })),
+  rejectBooking: async (id) => {
+    try {
+      await rejectBookingAPI(id);
+      await get().fetchBookings();
+    } catch (err) {
+      console.error("Error rejecting booking", err);
+      throw err;
+    }
+  },
 
-  joinQueue: async (instrumentId, userName) => {
+  joinQueue: async (instrumentId, userName, email) => {
     try {
       await joinQueueAPI({
         instrument_id: instrumentId,
         user_name: userName,
-        email: "user@email.com",
+        email: email,
       });
 
       return true;
@@ -139,13 +163,28 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
     }
   },
 
-  addInstrument: (instrument) =>
-    set((state) => ({ instruments: [...state.instruments, instrument] })),
+  addInstrument: async (instrument) => {
+    try {
+      const res = await createInstrument(instrument);
+      const created = res?.data || instrument;
+      set((state) => ({ instruments: [...state.instruments, created] }));
+      return created;
+    } catch (err) {
+      console.error("Failed to persist instrument", err);
+      set((state) => ({ instruments: [...state.instruments, instrument] }));
+      return instrument;
+    }
+  },
 
-  deleteInstrument: (id) =>
-    set((state) => ({
-      instruments: state.instruments.filter((i) => i.id !== id),
-    })),
+  deleteInstrument: async (id) => {
+    try {
+      await deleteInstrumentAPI(id);
+      set((state) => ({ instruments: state.instruments.filter((i) => i.id !== id) }));
+    } catch (err) {
+      console.error("Failed to delete instrument", err);
+      set((state) => ({ instruments: state.instruments.filter((i) => i.id !== id) }));
+    }
+  },
 
   updateInstrument: (id, updates) =>
     set((state) => ({
@@ -153,4 +192,5 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
         i.id === id ? { ...i, ...updates } : i
       ),
     })),
+
 }));

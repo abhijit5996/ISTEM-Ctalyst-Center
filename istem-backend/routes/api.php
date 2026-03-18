@@ -16,5 +16,8 @@ Route::get('/bookings', [BookingController::class, 'index']);
 Route::put('/bookings/{id}/approve', [BookingController::class, 'approve']);
 Route::put('/bookings/{id}/reject', [BookingController::class, 'reject']);
 
+Route::get('/admin/bookings', [BookingController::class, 'adminBookings']);
+Route::get('/admin/dashboard', [BookingController::class, 'dashboard']);
+
 Route::post('/queue', [QueueController::class, 'store']);
 Route::get('/queue/{instrumentId}', [QueueController::class, 'index']);

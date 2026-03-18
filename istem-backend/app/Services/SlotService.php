@@ -1,3 +1,9 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Booking;
+
 class SlotService
 {
     public static function hasConflict($instrumentId, $start, $end)
