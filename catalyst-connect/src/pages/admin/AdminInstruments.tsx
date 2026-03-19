@@ -23,6 +23,8 @@ const AdminInstruments = () => {
   const [cost, setCost] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<"available" | "booked" | "blocked">("available");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = useMemo(() => {
     const unique = Array.from(new Set(instruments.map((i) => i.category).filter(Boolean)));
@@ -33,21 +35,38 @@ const AdminInstruments = () => {
     i.name.toLowerCase().includes(search.toLowerCase()) || i.id.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!name || !category) {
       toast.error("Name and category are required.");
       return;
     }
-    const newId = `INS${String(instruments.length + 1).padStart(3, "0")}`;
-    const inst: Instrument = {
-      id: newId, name, category, location: location || "TBD", status,
-      usageCost: cost || "₹0/hour", image: "/placeholder.svg",
-      description: description || "", bookedSlots: [], waitingQueue: [],
-    };
-    addInstrument(inst);
-    toast.success(`Instrument ${newId} added.`);
-    setOpen(false);
-    setName(""); setCategory(""); setLocation(""); setCost(""); setDescription("");
+
+    setIsSubmitting(true);
+
+    try {
+      const params = new FormData();
+      params.append("name", name);
+      params.append("category", category);
+      params.append("location", location || "TBD");
+      params.append("status", status);
+      params.append("usage_cost", cost || "₹0/hour");
+      params.append("description", description || "");
+
+      if (imageFile) {
+        params.append("image", imageFile);
+      }
+
+      await addInstrument(params);
+
+      toast.success(`Instrument ${name} added.`);
+      setOpen(false);
+      setName(""); setCategory(""); setLocation(""); setCost(""); setDescription(""); setImageFile(null);
+    } catch (err) {
+      console.error("Error adding instrument", err);
+      toast.error("Failed to add instrument. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -76,8 +95,22 @@ const AdminInstruments = () => {
                   <SelectContent><SelectItem value="available">Available</SelectItem><SelectItem value="booked">Booked</SelectItem><SelectItem value="blocked">Blocked</SelectItem></SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1"><Label>Image</Label>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setImageFile(file);
+                  }}
+                  className="w-full"
+                />
+                {imageFile && <p className="text-xs text-muted-foreground">Selected: {imageFile.name}</p>}
+              </div>
               <div className="space-y-1"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="bg-background" /></div>
-              <Button onClick={handleAdd} className="w-full">Add Instrument</Button>
+              <Button onClick={handleAdd} className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Add Instrument"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -87,7 +120,7 @@ const AdminInstruments = () => {
 
       {/* Mobile card view */}
       <div className="sm:hidden space-y-3">
-        {filtered.slice(0, 20).map((inst) => (
+        {filtered.map((inst) => (
           <div key={inst.id} className="bg-card rounded-lg card-shadow p-3 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="font-mono tabular-nums text-xs text-muted-foreground">{inst.id}</span>
@@ -122,7 +155,7 @@ const AdminInstruments = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.slice(0, 20).map((inst) => (
+            {filtered.map((inst) => (
               <tr key={inst.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors h-10">
                 <td className="p-3 font-mono tabular-nums text-xs">{inst.id}</td>
                 <td className="p-3 max-w-[200px] truncate">{inst.name}</td>

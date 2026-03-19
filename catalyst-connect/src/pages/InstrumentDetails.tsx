@@ -1,6 +1,8 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Instrument } from "@/types/instrument";
 import { useBookingStore } from "@/store/bookingStore";
+import { getInstrumentById } from "@/api/services/instrumentService";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
@@ -9,11 +11,17 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ArrowLeft, MapPin, Clock, AlertTriangle, Users, CalendarIcon } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
 import { PageTransition, fadeInUp, staggerContainer } from "@/components/PageTransition";
 import { motion } from "framer-motion";
+
+type ExtendedInstrument = Instrument & {
+  image_url?: string;
+  usage_cost?: string;
+  is_available?: boolean;
+};
 
 const InstrumentDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +30,38 @@ const InstrumentDetails = () => {
   const addToBag = useBookingStore((s) => s.addToBag);
   const joinQueue = useBookingStore((s) => s.joinQueue);
   const bag = useBookingStore((s) => s.bag);
-  const instrument = instruments.find((i) => i.id === id);
+
+  const instrumentFromStore = instruments.find((i) => i.id === id) as ExtendedInstrument | undefined;
+  const [instrument, setInstrument] = useState<ExtendedInstrument | null>(instrumentFromStore ?? null);
+  const [loadingInstrument, setLoadingInstrument] = useState(true);
+
+  useEffect(() => {
+    const loadInstrument = async () => {
+      if (!id) return;
+      setLoadingInstrument(true);
+      try {
+        const res = await getInstrumentById(id);
+        if (res?.data) {
+          setInstrument(res.data);
+        } else if (instrumentFromStore) {
+          setInstrument(instrumentFromStore);
+        } else {
+          setInstrument(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch instrument details", error);
+        if (instrumentFromStore) {
+          setInstrument(instrumentFromStore);
+        } else {
+          setInstrument(null);
+        }
+      } finally {
+        setLoadingInstrument(false);
+      }
+    };
+
+    loadInstrument();
+  }, [id, instrumentFromStore]);
 
   const safeInstrument = {
     ...instrument,
@@ -55,7 +94,15 @@ const InstrumentDetails = () => {
     });
 
     return dates;
-  }, [instrument]);
+  }, [instrument, safeInstrument.bookedSlots]);
+
+  if (loadingInstrument) {
+    return (
+      <MainLayout>
+        <div className="container py-20 text-center">Loading instrument details...</div>
+      </MainLayout>
+    );
+  }
 
   if (!instrument) {
     return (
@@ -150,7 +197,7 @@ const InstrumentDetails = () => {
             >
               <div className="aspect-[4/3] bg-muted rounded-lg overflow-hidden card-shadow">
                 <img
-                  src={instrument.image}
+                  src={instrument.image_url || instrument.image || "/placeholder.svg"}
                   alt={instrument.name}
                   className="w-full h-full object-cover image-outline"
                   onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }}
@@ -183,7 +230,9 @@ const InstrumentDetails = () => {
                 </Badge>
               </motion.div>
 
-              <motion.p variants={fadeInUp} className="text-sm text-muted-foreground leading-relaxed">{instrument.description}</motion.p>
+              <motion.div variants={fadeInUp} className="max-h-[500px] overflow-y-auto whitespace-pre-wrap break-words text-sm text-muted-foreground leading-relaxed">
+                {instrument.description || "No description provided."}
+              </motion.div>
 
               <motion.div variants={fadeInUp} className="grid grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -192,8 +241,14 @@ const InstrumentDetails = () => {
                 </div>
                 <div className="flex items-center gap-2 font-mono tabular-nums text-muted-foreground">
                   <Clock className="h-4 w-4 shrink-0" />
-                  {instrument.usageCost}
+                  {instrument.usageCost || instrument.usage_cost || "N/A"}
                 </div>
+              </motion.div>
+
+              <motion.div variants={fadeInUp}>
+                <Badge className={`inline-flex items-center text-xs px-2 py-1 rounded-full ${instrument.is_available ? 'bg-green-100 text-green-600 border-green-200' : 'bg-red-100 text-red-600 border-red-200'}`}>
+                  {instrument.is_available ? 'Available' : 'Booked'}
+                </Badge>
               </motion.div>
 
               {/* Booked slots info */}

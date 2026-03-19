@@ -7,38 +7,36 @@ import { fadeInUp, staggerContainer } from "@/components/PageTransition";
 const AdminDashboard = () => {
   const instruments = useBookingStore((s) => s.instruments);
   const bookingRequests = useBookingStore((s) => s.bookingRequests ?? []);
+  const dashboardData = useBookingStore((s) => s.dashboardData);
   const loadingBookings = useBookingStore((s) => s.loadingBookings);
+  const loadingDashboard = useBookingStore((s) => s.loadingDashboard);
   const fetchBookings = useBookingStore((s) => s.fetchBookings);
+  const fetchDashboard = useBookingStore((s) => s.fetchDashboard);
 
   useEffect(() => {
     fetchBookings();
-  }, [fetchBookings]);
+    fetchDashboard();
+  }, [fetchBookings, fetchDashboard]);
 
-  const stats = {
-    total: instruments.length,
+  const knownInstruments = dashboardData?.instruments ?? instruments;
+  const knownBookings = dashboardData?.bookings ?? bookingRequests;
 
-    available: instruments.filter((i) => i.status === "available").length,
-
-    booked: instruments.filter((i) => i.status === "booked").length,
-
-    blocked: instruments.filter((i) => i.status === "blocked").length,
-
-    totalBookings: instruments.reduce((acc, inst) => {
-      return acc + ((inst.bookedSlots || []).length);
-    }, 0),
-
-    totalQueue: instruments.reduce((acc, inst) => {
-      return acc + ((inst.waitingQueue || []).length);
-    }, 0),
+  const stats = dashboardData?.stats || {
+    total_instruments: knownInstruments.length,
+    available: knownInstruments.filter((i) => i.status === "available").length,
+    booked: knownInstruments.filter((i) => i.status === "booked").length,
+    blocked: knownInstruments.filter((i) => i.status === "blocked").length,
+    totalBookings: knownInstruments.reduce((acc, inst) => acc + ((inst.bookedSlots || []).length), 0),
+    totalQueue: knownInstruments.reduce((acc, inst) => acc + ((inst.waitingQueue || []).length), 0),
   };
 
   const statCards = [
-    { label: "Total Instruments", value: stats.total, icon: Microscope, color: "text-accent" },
+    { label: "Total Instruments", value: stats.total_instruments ?? stats.total, icon: Microscope, color: "text-accent" },
     { label: "Available Instruments", value: stats.available, icon: Calendar, color: "text-status-available" },
     { label: "Booked Instruments", value: stats.booked, icon: Clock, color: "text-status-booked" },
     { label: "Blocked Instruments", value: stats.blocked, icon: Users, color: "text-status-blocked" },
-    { label: "Total Bookings", value: stats.totalBookings, icon: Calendar, color: "text-status-available" },
-    { label: "Queue Entries", value: stats.totalQueue, icon: Users, color: "text-primary" },
+    { label: "Total Bookings", value: stats.totalBookings ?? stats.total_bookings, icon: Calendar, color: "text-status-available" },
+    { label: "Queue Entries", value: stats.totalQueue || 0, icon: Users, color: "text-primary" },
   ];
 
   return (
@@ -70,7 +68,7 @@ const AdminDashboard = () => {
           ) : !bookingRequests?.length ? (
             <div className="p-4 text-center text-sm text-muted-foreground">No booking requests found.</div>
           ) : (
-            bookingRequests.slice(0, 10).map((r) => (
+            bookingRequests.map((r) => (
               <div key={r.id} className="p-3 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="font-mono tabular-nums text-xs text-muted-foreground">{r.id}</span>
@@ -109,7 +107,7 @@ const AdminDashboard = () => {
               ) : !bookingRequests?.length ? (
                 <tr><td className="p-4 text-center" colSpan={5}>No booking requests found.</td></tr>
               ) : (
-                bookingRequests.slice(0, 10).map((r) => (
+                bookingRequests.map((r) => (
                   <tr key={r.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                     <td className="p-3 font-mono tabular-nums">{r.id}</td>
                     <td className="p-3">{r.name}</td>

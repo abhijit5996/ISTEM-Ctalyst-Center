@@ -1,8 +1,8 @@
 import API from "../axios";
 
 // GET all instruments
-export const getInstruments = (page = 1, limit = 10) =>
-  API.get(`/instruments?page=${page}&limit=${limit}`);
+export const getInstruments = () =>
+  API.get('/instruments');
 
 // GET single instrument
 export const getInstrumentById = (id) =>

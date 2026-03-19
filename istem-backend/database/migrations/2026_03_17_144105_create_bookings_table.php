@@ -28,6 +28,7 @@ return new class extends Migration
         $table->date('start_date');
         $table->date('end_date');
         $table->string('user_email');
+        $table->string('email')->nullable();
 
         $table->enum('status', ['pending','approved','rejected','completed'])->default('pending');
 

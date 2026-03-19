@@ -42,6 +42,7 @@ class BookingController extends Controller
             'instrument_id' => $validated['instrument_id'],
             'name' => $validated['name'],
             'user_email' => $validated['email'],
+            'email' => $validated['email'],
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
             'user_type' => $validated['user_type'] ?? 'student',
@@ -61,52 +62,45 @@ class BookingController extends Controller
 
     public function approve($id)
     {
-            try {
+        try {
             $booking = Booking::findOrFail($id);
 
             $booking->status = 'approved';
             $booking->save();
 
-            try {
-                Mail::to($booking->user_email)->send(new BookingApprovedMail($booking));
-            } catch (\Exception $mailException) {
-                Log::warning('Booking approval mail send failed (sync), trying queued', ['booking_id' => $id, 'error' => $mailException->getMessage()]);
-                try {
-                    Mail::to($booking->user_email)->queue(new BookingApprovedMail($booking));
-                } catch (\Exception $queueException) {
-                    Log::error('Booking approval mail queue failed', ['booking_id' => $id, 'error' => $queueException->getMessage()]);
-                }
-            }
+            $recipient = $booking->email ?? $booking->user_email;
+
+            // ✅ NON-BLOCKING EMAIL
+            dispatch(function () use ($recipient, $booking) {
+                Mail::to($recipient)->send(new BookingApprovedMail($booking));
+            });
 
             return response()->json(['success' => true]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            Log::error('Booking approval failed', ['booking_id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(['success' => false], 500);
         }
     }
 
     public function reject($id)
     {
-            try {
+        try {
             $booking = Booking::findOrFail($id);
 
             $booking->status = 'rejected';
             $booking->save();
 
-            try {
-                Mail::to($booking->user_email)->send(new BookingRejectedMail($booking));
-            } catch (\Exception $mailException) {
-                Log::warning('Booking rejection mail send failed (sync), trying queued', ['booking_id' => $id, 'error' => $mailException->getMessage()]);
-                try {
-                    Mail::to($booking->user_email)->queue(new BookingRejectedMail($booking));
-                } catch (\Exception $queueException) {
-                    Log::error('Booking rejection mail queue failed', ['booking_id' => $id, 'error' => $queueException->getMessage()]);
-                }
-            }
+            $recipient = $booking->email ?? $booking->user_email;
+
+            dispatch(function () use ($recipient, $booking) {
+                Mail::to($recipient)->send(new BookingRejectedMail($booking));
+            });
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            Log::error('Booking rejection failed', ['booking_id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(['success' => false], 500);
         }
     }
 
@@ -132,18 +126,24 @@ class BookingController extends Controller
 
     public function dashboard()
     {
-        $totalInstruments = Instrument::count();
-        $totalBookings = Booking::count();
-        $pendingRequests = Booking::where('status', 'pending')->count();
-        $approvedBookings = Booking::where('status', 'approved')->count();
+            $instruments = Instrument::with('bookings')->get();
+        $bookings = Booking::all();
+        $totalInstruments = $instruments->count();
+        $totalBookings = $bookings->count();
+        $pendingRequests = $bookings->where('status', 'pending')->count();
+        $approvedBookings = $bookings->where('status', 'approved')->count();
 
         return response()->json([
             'success' => true,
             'data' => [
-                'total_instruments' => $totalInstruments,
-                'total_bookings' => $totalBookings,
-                'pending_requests' => $pendingRequests,
-                'approved_bookings' => $approvedBookings,
+                'instruments' => $instruments,
+                'bookings' => $bookings,
+                'stats' => [
+                    'total_instruments' => $totalInstruments,
+                    'total_bookings' => $totalBookings,
+                    'pending_requests' => $pendingRequests,
+                    'approved_bookings' => $approvedBookings,
+                ],
             ],
         ]);
     }

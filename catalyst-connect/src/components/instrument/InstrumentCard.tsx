@@ -16,7 +16,13 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   limited: { label: "Limited Slots", className: "bg-yellow-100 text-yellow-600 border-yellow-200" },
 };
 
-export function InstrumentCard({ instrument, index = 0 }: { instrument: Instrument; index?: number }) {
+type ExtendedInstrument = Instrument & {
+  image_url?: string;
+  usage_cost?: string;
+  is_available?: boolean;
+};
+
+export function InstrumentCard({ instrument, index = 0 }: { instrument: ExtendedInstrument; index?: number }) {
   const addToBag = useBookingStore((s) => s.addToBag);
   const bag = useBookingStore((s) => s.bag);
   const navigate = useNavigate();
@@ -35,13 +41,14 @@ export function InstrumentCard({ instrument, index = 0 }: { instrument: Instrume
     description: instrument?.description || "No description",
     category: instrument?.category || "General",
     location: instrument?.location || "N/A",
-    usageCost: instrument?.usageCost || "N/A",
-    image: instrument?.image || "/placeholder.svg",
+    usageCost: instrument?.usageCost || instrument?.usage_cost || "N/A",
+    image: instrument?.image_url || instrument?.image || "/placeholder.svg",
     status: instrument?.status || "unknown",
+    isAvailable: instrument?.is_available ?? instrument?.status !== "booked",
   };
 
   const handleAddToBag = () => {
-    if (safe.status === "booked" || safe.status === "blocked") {
+    if (!safe.isAvailable || safe.status === "blocked") {
       toast.error("This instrument is not available for booking.");
       return;
     }
@@ -87,6 +94,9 @@ export function InstrumentCard({ instrument, index = 0 }: { instrument: Instrume
         <div>
           <p className="text-xs text-muted-foreground uppercase">{safe.category}</p>
           <h3 className="font-semibold text-sm mt-1 line-clamp-2">{safe.name}</h3>
+          <Badge className={`inline-flex items-center text-[10px] mt-1 ${safe.isAvailable ? 'bg-green-100 text-green-600 border-green-200' : 'bg-red-100 text-red-600 border-red-200'}`}>
+            {safe.isAvailable ? 'Available' : 'Booked'}
+          </Badge>
         </div>
 
         <p className="text-xs text-muted-foreground line-clamp-2">

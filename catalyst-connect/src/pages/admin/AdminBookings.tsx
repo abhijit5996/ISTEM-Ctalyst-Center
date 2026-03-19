@@ -10,8 +10,10 @@ const AdminBookings = () => {
   const approveBooking = useBookingStore((s) => s.approveBooking);
   const rejectBooking = useBookingStore((s) => s.rejectBooking);
   const [emailModal, setEmailModal] = useState<string | null>(null);
+  const [loadingBookingId, setLoadingBookingId] = useState<string | null>(null);
 
   const handleApprove = async (id: string) => {
+    setLoadingBookingId(id);
     try {
       await approveBooking(id);
       setEmailModal(id);
@@ -19,6 +21,21 @@ const AdminBookings = () => {
     } catch (err) {
       console.error("approveBooking failed", err);
       toast.error(`Failed to approve ${id}.`);
+    } finally {
+      setLoadingBookingId(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    setLoadingBookingId(id);
+    try {
+      await rejectBooking(id);
+      toast.info(`${id} rejected.`);
+    } catch (err) {
+      console.error("rejectBooking failed", err);
+      toast.error(`Failed to reject ${id}.`);
+    } finally {
+      setLoadingBookingId(null);
     }
   };
 
@@ -47,11 +64,11 @@ const AdminBookings = () => {
             <p className="text-xs text-muted-foreground">{r.department}</p>
             {r.status === "pending" && (
               <div className="flex gap-2 pt-1">
-                <Button size="sm" variant="outline" className="flex-1 h-8 text-xs text-status-available border-status-available/30" onClick={() => handleApprove(r.id)}>
-                  <Check className="h-3 w-3 mr-1" /> Approve
+                <Button size="sm" variant="outline" className="flex-1 h-8 text-xs text-status-available border-status-available/30" onClick={() => handleApprove(r.id)} disabled={loadingBookingId === r.id}>
+                  <Check className="h-3 w-3 mr-1" /> {loadingBookingId === r.id ? 'Approving...' : 'Approve'}
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1 h-8 text-xs text-status-booked border-status-booked/30" onClick={async () => { try { await rejectBooking(r.id); toast.info(`${r.id} rejected.`); } catch (err) { console.error(err); toast.error(`Failed to reject ${r.id}`); } }}>
-                  <X className="h-3 w-3 mr-1" /> Reject
+                <Button size="sm" variant="outline" className="flex-1 h-8 text-xs text-status-booked border-status-booked/30" onClick={() => handleReject(r.id)} disabled={loadingBookingId === r.id}>
+                  <X className="h-3 w-3 mr-1" /> {loadingBookingId === r.id ? 'Rejecting...' : 'Reject'}
                 </Button>
               </div>
             )}
@@ -96,10 +113,10 @@ const AdminBookings = () => {
                 <td className="p-3 text-right">
                   {r.status === "pending" && (
                     <div className="flex gap-1 justify-end">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-status-available hover:bg-status-available/10" onClick={() => handleApprove(r.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-status-available hover:bg-status-available/10" onClick={() => handleApprove(r.id)} disabled={loadingBookingId === r.id}>
                         <Check className="h-3 w-3" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-status-booked hover:bg-status-booked/10" onClick={() => { rejectBooking(r.id); toast.info(`${r.id} rejected.`); }}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-status-booked hover:bg-status-booked/10" onClick={() => handleReject(r.id)} disabled={loadingBookingId === r.id}>
                         <X className="h-3 w-3" />
                       </Button>
                     </div>

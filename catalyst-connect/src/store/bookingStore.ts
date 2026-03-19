@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { BagItem, BookingRequest, Instrument } from "@/types/instrument";
-import { getInstruments, createInstrument, deleteInstrument as deleteInstrumentAPI } from "@/api/services/instrumentService";
+import { getInstruments, createInstrument, updateInstrument as updateInstrumentAPI, deleteInstrument as deleteInstrumentAPI } from "@/api/services/instrumentService";
 import {
   getBookings,
   createBooking,
@@ -14,35 +14,44 @@ interface BookingStore {
   instruments: Instrument[];
   bag: BagItem[];
   bookingRequests: BookingRequest[];
+  dashboardData: {
+    instruments: Instrument[];
+    bookings: BookingRequest[];
+    stats: Record<string, number>;
+  } | null;
   loadingInstruments: boolean;
   loadingBookings: boolean;
+  loadingDashboard: boolean;
   instrumentsLoaded: boolean;
 
   fetchInstruments: () => Promise<void>;
   fetchBookings: () => Promise<void>;
+  fetchDashboard: () => Promise<void>;
 
   addToBag: (item: BagItem) => void;
   removeFromBag: (instrumentId: string) => void;
   clearBag: () => void;
 
-  submitBooking: (request: Record<string, any>) => Promise<string>;
+  submitBooking: (request: Record<string, unknown>) => Promise<string>;
 
   approveBooking: (id: string) => Promise<void>;
   rejectBooking: (id: string) => Promise<void>;
 
   joinQueue: (instrumentId: string, userName: string, email: string) => Promise<boolean>;
 
-  addInstrument: (instrument: Instrument) => void;
+  addInstrument: (instrument: Instrument | FormData) => Promise<Instrument>;
   deleteInstrument: (id: string) => void;
-  updateInstrument: (id: string, updates: Partial<Instrument>) => void;
+  updateInstrument: (id: string, updates: Partial<Instrument> | FormData) => Promise<Instrument | null>;
 }
 
 export const useBookingStore = create<BookingStore>((set, get) => ({
   instruments: [],
   bag: [],
   bookingRequests: [],
+  dashboardData: null,
   loadingInstruments: false,
   loadingBookings: false,
+  loadingDashboard: false,
   instrumentsLoaded: false,
 
   fetchBookings: async () => {
@@ -60,6 +69,31 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
       set({ bookingRequests: [] });
     } finally {
       set({ loadingBookings: false });
+    }
+  },
+
+  fetchDashboard: async () => {
+    set({ loadingDashboard: true });
+
+    try {
+      const res = await getAdminDashboard();
+      const root = res?.data || {};
+      const data = root?.data || {};
+      const instruments = Array.isArray(data.instruments) ? data.instruments : [];
+      const bookings = Array.isArray(data.bookings) ? data.bookings : [];
+      const stats = data.stats || {
+        total_instruments: instruments.length,
+        total_bookings: bookings.length,
+        pending_requests: bookings.filter((b) => b.status === "pending").length,
+        approved_bookings: bookings.filter((b) => b.status === "approved").length,
+      };
+
+      set({ dashboardData: { instruments, bookings, stats } });
+    } catch (err) {
+      console.error("Error fetching dashboard", err);
+      set({ dashboardData: null });
+    } finally {
+      set({ loadingDashboard: false });
     }
   },
 
@@ -119,9 +153,10 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
       }
 
       return res.data?.data?.id || 'success';
-    } catch (err: any) {
-      const conflictMessage = err.response?.data?.message;
-      if (err.response?.status === 409 || conflictMessage === 'slot_already_booked' || conflictMessage === 'slot_unavailable') {
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { status?: number; data?: { message?: string } } };
+      const conflictMessage = axiosError.response?.data?.message;
+      if (axiosError.response?.status === 409 || conflictMessage === 'slot_already_booked' || conflictMessage === 'slot_unavailable') {
         throw new Error('slot_unavailable');
       }
       throw err;
@@ -129,21 +164,43 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
   },
 
   approveBooking: async (id) => {
+    const previous = get().bookingRequests;
+
+    set((state) => ({
+      bookingRequests: state.bookingRequests.map((b) =>
+        b.id === id ? { ...b, status: 'approved' } : b
+      ),
+    }));
+
     try {
       await approveBookingAPI(id);
-      await get().fetchBookings();
+
+      // ✅ PARALLEL FETCH (FAST)
+      Promise.all([get().fetchBookings(), get().fetchInstruments(), get().fetchDashboard()]);
+
     } catch (err) {
       console.error("Error approving booking", err);
+      set({ bookingRequests: previous });
       throw err;
     }
   },
 
   rejectBooking: async (id) => {
+    const previous = get().bookingRequests;
+    set((state) => ({
+      bookingRequests: state.bookingRequests.map((b) =>
+        b.id === id ? { ...b, status: 'rejected' } : b
+      ),
+    }));
+
     try {
       await rejectBookingAPI(id);
       await get().fetchBookings();
+      await get().fetchInstruments();
+      await get().fetchDashboard();
     } catch (err) {
       console.error("Error rejecting booking", err);
+      set({ bookingRequests: previous });
       throw err;
     }
   },
@@ -166,13 +223,16 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
   addInstrument: async (instrument) => {
     try {
       const res = await createInstrument(instrument);
-      const created = res?.data || instrument;
+      const created: Instrument = res?.data || (instrument as Instrument);
       set((state) => ({ instruments: [...state.instruments, created] }));
       return created;
     } catch (err) {
       console.error("Failed to persist instrument", err);
-      set((state) => ({ instruments: [...state.instruments, instrument] }));
-      return instrument;
+      const fallback = instrument instanceof FormData ? null : (instrument as Instrument);
+      if (fallback) {
+        set((state) => ({ instruments: [...state.instruments, fallback] }));
+      }
+      return fallback;
     }
   },
 
@@ -186,11 +246,32 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
     }
   },
 
-  updateInstrument: (id, updates) =>
+  updateInstrument: async (id, updates) => {
+    if (updates instanceof FormData) {
+      try {
+        const res = await updateInstrumentAPI(id, updates);
+        const updated = res?.data;
+        if (updated) {
+          set((state) => ({
+            instruments: state.instruments.map((i) =>
+              i.id === id ? { ...i, ...updated } : i
+            ),
+          }));
+          return updated;
+        }
+      } catch (err) {
+        console.error("Failed to update instrument", err);
+      }
+      return null;
+    }
+
     set((state) => ({
       instruments: state.instruments.map((i) =>
         i.id === id ? { ...i, ...updates } : i
       ),
-    })),
+    }));
+
+    return get().instruments.find((i) => i.id === id) ?? null;
+  },
 
 }));
