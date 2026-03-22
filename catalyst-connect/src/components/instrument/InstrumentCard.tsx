@@ -139,7 +139,18 @@ export function InstrumentCard({ instrument, index = 0 }: { instrument: Extended
               size="sm"
               variant="ghost"
               className="w-full text-xs"
-              onClick={() => navigate('/booking-form')}
+              onClick={async () => {
+                const success = await useBookingStore.getState().joinQueue(
+                  instrument.id,
+                  "Current User",
+                  "current.user@example.com"
+                );
+                if (success) {
+                  toast.success("Joined queue");
+                } else {
+                  toast.error("Failed to join queue. Please try again later.");
+                }
+              }}
             >
               Join Queue
             </Button>

@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useBookingStore } from "@/store/bookingStore";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "@/components/PageTransition";
+import { Radio } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -22,6 +23,18 @@ const CHART_COLORS = [
 const AdminAnalytics = () => {
   const instruments = useBookingStore((s) => s.instruments);
   const bookingRequests = useBookingStore((s) => s.bookingRequests);
+  const realtimeEnabled = useBookingStore((s) => s.realtimeEnabled);
+  const startRealtimeUpdates = useBookingStore((s) => s.startRealtimeUpdates);
+  const stopRealtimeUpdates = useBookingStore((s) => s.stopRealtimeUpdates);
+
+  // Initialize real-time updates on mount
+  useEffect(() => {
+    startRealtimeUpdates();
+
+    return () => {
+      stopRealtimeUpdates();
+    };
+  }, [startRealtimeUpdates, stopRealtimeUpdates]);
 
   // Category distribution for pie chart
   const categoryData = useMemo(() => {
@@ -96,7 +109,8 @@ const AdminAnalytics = () => {
       { range: "₹800+", min: 801, max: Infinity, count: 0 },
     ];
     instruments.forEach((i) => {
-      const cost = parseInt(i.usageCost.replace(/[^\d]/g, "")) || 0;
+      const usageString = i.usageCost || (i.cost != null ? String(i.cost) : "0");
+      const cost = parseInt(usageString.toString().replace(/[^\d]/g, "")) || 0;
       const range = ranges.find((r) => cost >= r.min && cost <= r.max);
       if (range) range.count++;
     });
@@ -105,16 +119,25 @@ const AdminAnalytics = () => {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <motion.h1 variants={fadeInUp} initial="initial" animate="animate" className="text-lg sm:text-xl font-bold">
-        Analytics
-      </motion.h1>
+      <motion.div className="flex items-center justify-between" variants={fadeInUp} initial="initial" animate="animate">
+        <h1 className="text-lg sm:text-xl font-bold">Analytics</h1>
+        {realtimeEnabled && (
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-green-600 bg-green-50 dark:bg-green-950 px-3 py-1.5 rounded-full">
+            <Radio className="h-3 w-3 animate-pulse" />
+            <span>Live Updates Active</span>
+          </div>
+        )}
+      </motion.div>
 
       <motion.div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" variants={staggerContainer} initial="initial" animate="animate">
         {[
           { label: "Total Instruments", val: instruments.length },
           { label: "Total Requests", val: bookingRequests.length },
           { label: "Categories", val: categoryData.length },
-          { label: "Avg Cost/hr", val: `₹${Math.round(instruments.reduce((s, i) => s + (parseInt(i.usageCost.replace(/[^\d]/g, "")) || 0), 0) / instruments.length)}` },
+          { label: "Avg Cost/hr", val: `₹${Math.round(instruments.reduce((s, i) => {
+              const usageString = i.usageCost || (i.cost != null ? String(i.cost) : "0");
+              return s + (parseInt(usageString.replace(/[^\d]/g, "")) || 0);
+            }, 0) / Math.max(instruments.length, 1))}` }
         ].map((s) => (
           <motion.div key={s.label} variants={fadeInUp} className="bg-card rounded-lg card-shadow p-3 sm:p-4">
             <p className="text-[11px] sm:text-xs text-muted-foreground">{s.label}</p>

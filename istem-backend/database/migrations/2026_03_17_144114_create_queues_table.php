@@ -19,7 +19,8 @@ return new class extends Migration
         $table->string('user_name');
         $table->string('email');
 
-        $table->integer('position');
+        // Use `queue_position` to match the Eloquent model and controllers
+        $table->integer('queue_position');
 
         $table->timestamps();
 

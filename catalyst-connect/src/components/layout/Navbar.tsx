@@ -1,20 +1,25 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ShoppingBag, Menu, X, Microscope } from "lucide-react";
 import { useState } from "react";
 import { useBookingStore } from "@/store/bookingStore";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const bag = useBookingStore((s) => s.bag);
+   const user = useBookingStore((s) => s.user);
+   const isAuthenticated = useBookingStore((s) => s.isAuthenticated);
+   const isAdmin = useBookingStore((s) => s.isAdmin);
+   const logout = useBookingStore((s) => s.logout);
   const location = useLocation();
+   const navigate = useNavigate();
 
   const links = [
     { to: "/", label: "Instruments" },
     { to: "/bag", label: "Booking Bag" },
-    { to: "/admin", label: "Admin" },
   ];
 
   return (
@@ -54,6 +59,60 @@ export function Navbar() {
               )}
             </Button>
           </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="ml-1 rounded-full border">
+                  {user?.profile_picture ? (
+                    <img
+                      src={user.profile_picture}
+                      alt={user.name}
+                      className="h-7 w-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="h-7 w-7 rounded-full bg-accent/20 flex items-center justify-center text-xs font-semibold">
+                      {(user?.name || (isAdmin ? "A" : "U")).charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>
+                  {isAdmin ? "Admin" : user?.name || "Guest"}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {!isAuthenticated && !isAdmin && (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate("/login")}>Login</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/signup")}>Sign up</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                {isAuthenticated && !isAdmin && (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate("/profile")}>My Profile</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/my-bookings")}>My Bookings</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/queue-status")}>Queue Status</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                {isAdmin && (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>Admin Dashboard</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                {(isAuthenticated || isAdmin) && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      logout();
+                      navigate("/");
+                    }}
+                  >
+                    Logout
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           <Button
             variant="ghost"
             size="icon"

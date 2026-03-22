@@ -24,7 +24,7 @@ export const rejectBooking = (id) =>
 
 export const getAdminBookings = async () => {
   const res = await API.get('/admin/bookings');
-  if (res?.data && Array.isArray(res.data.data)) {
+  if (res?.data?.data && Array.isArray(res.data.data)) {
     return res.data.data;
   }
   return [];
@@ -32,3 +32,13 @@ export const getAdminBookings = async () => {
 
 export const getAdminDashboard = () =>
   API.get('/admin/dashboard');
+
+export const lockSlot = (data) =>
+  API.post('/lock-slot', data);
+
+export const releaseLock = (data) =>
+  API.post('/release-lock', data);
+
+// Check availability for a given instrument and date range
+export const checkAvailability = (params) =>
+  API.get('/check-availability', { params });

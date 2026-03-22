@@ -8,6 +8,20 @@ const API = axios.create({
   timeout: 30000,
 });
 
+API.interceptors.request.use(
+  (config) => {
+    if (typeof window !== "undefined") {
+      const token = window.localStorage.getItem("auth_token");
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
 API.interceptors.response.use(
   (response) => response,
   (error) => {

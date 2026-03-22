@@ -9,18 +9,44 @@ class InstrumentController extends Controller
 {
     public function index()
     {
-        $instruments = Instrument::with('bookings')->get()->map(function ($inst) {
+        $instruments = Instrument::with(['bookings', 'queues'])->get()->map(function ($inst) {
             $inst->status = $inst->is_available ? 'available' : 'booked';
+
+            $inst->waitingQueue = $inst->queues->map(function ($q) {
+                return [
+                    'user' => $q->user_name,
+                    'position' => $q->queue_position,
+                ];
+            });
+
+            $inst->bookedSlots = $inst->bookings
+                ->where('status', 'approved')
+                ->map(function ($b) {
+                    return [
+                        'user' => $b->name,
+                        'from' => $b->start_date,
+                        'to' => $b->end_date,
+                    ];
+                });
+
             return $inst;
         });
 
-        return response()->json($instruments);
+        return response()->json([
+            'success' => true,
+            'data' => $instruments
+        ]);
     }
 
     public function show($id)
     {
-        $instrument = Instrument::with('bookings')->findOrFail($id);
-        return response()->json($instrument);
+        $instrument = Instrument::with(['bookings', 'queues'])->findOrFail($id);
+        $instrument->usageCost = $instrument->usage_cost;
+        
+        return response()->json([
+            'success' => true,
+            'data' => $instrument
+        ]);
     }
 
     public function store(Request $request)
@@ -45,7 +71,10 @@ class InstrumentController extends Controller
 
         $instrument = Instrument::create($validated);
 
-        return response()->json($instrument, 201);
+        return response()->json([
+            'success' => true,
+            'data' => $instrument
+        ], 201);
     }
 
     public function update(Request $request, $id)
@@ -70,12 +99,19 @@ class InstrumentController extends Controller
         $instrument->update($validated);
         $instrument->refresh();
 
-        return response()->json($instrument);
+        return response()->json([
+            'success' => true,
+            'data' => $instrument
+        ]);
     }
 
     public function delete($id)
     {
         Instrument::destroy($id);
-        return response()->json(['message' => 'Deleted']);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Instrument deleted successfully'
+        ]);
     }
 }

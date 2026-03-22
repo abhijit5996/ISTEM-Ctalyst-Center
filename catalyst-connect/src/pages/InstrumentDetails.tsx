@@ -16,6 +16,7 @@ import { ArrowLeft, MapPin, Clock, AlertTriangle, Users, CalendarIcon } from "lu
 import { format, parse, isValid } from "date-fns";
 import { PageTransition, fadeInUp, staggerContainer } from "@/components/PageTransition";
 import { motion } from "framer-motion";
+import { checkAvailability } from "@/api/services/bookingService";
 
 type ExtendedInstrument = Instrument & {
   image_url?: string;
@@ -29,6 +30,8 @@ const InstrumentDetails = () => {
   const instruments = useBookingStore((s) => s.instruments);
   const addToBag = useBookingStore((s) => s.addToBag);
   const joinQueue = useBookingStore((s) => s.joinQueue);
+  const lockSlot = useBookingStore((s) => s.lockSlot);
+  const releaseLock = useBookingStore((s) => s.releaseLock);
   const bag = useBookingStore((s) => s.bag);
 
   const instrumentFromStore = instruments.find((i) => i.id === id) as ExtendedInstrument | undefined;
@@ -41,8 +44,10 @@ const InstrumentDetails = () => {
       setLoadingInstrument(true);
       try {
         const res = await getInstrumentById(id);
-        if (res?.data) {
-          setInstrument(res.data);
+        const payload = res?.data?.data || res?.data;
+
+        if (payload) {
+          setInstrument(payload);
         } else if (instrumentFromStore) {
           setInstrument(instrumentFromStore);
         } else {
@@ -75,18 +80,23 @@ const InstrumentDetails = () => {
   const [toInput, setToInput] = useState("");
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
+	const [slotStatus, setSlotStatus] = useState<"idle" | "checking" | "available" | "unavailable" | "error">("idle");
 
   const inBag = bag.some((b) => b.instrument.id === id);
 
   const bookedDates = useMemo(() => {
     if (!instrument) return [];
 
-    const slots = safeInstrument.bookedSlots || [];
+    const slots = Array.isArray(safeInstrument.bookedSlots) ? safeInstrument.bookedSlots : [];
     const dates: Date[] = [];
 
     slots.forEach((slot) => {
       const start = new Date(slot.from);
       const end = new Date(slot.to);
+
+      if (!isValid(start) || !isValid(end) || end < start) {
+        return;
+      }
 
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         dates.push(new Date(d));
@@ -95,6 +105,60 @@ const InstrumentDetails = () => {
 
     return dates;
   }, [instrument, safeInstrument.bookedSlots]);
+
+  useEffect(() => {
+    if (fromDate && toDate && instrument) {
+      lockSlot({
+        instrument_id: instrument.id,
+        start_date: format(fromDate, "yyyy-MM-dd"),
+        end_date: format(toDate, "yyyy-MM-dd"),
+        email: "current.user@example.com",
+      });
+
+      return () => {
+        releaseLock({
+          instrument_id: instrument.id,
+          email: "current.user@example.com",
+        });
+      };
+    }
+
+    return undefined;
+  }, [fromDate, toDate, instrument, lockSlot, releaseLock]);
+
+  // Dynamic availability check when user selects date range
+  useEffect(() => {
+    if (!instrument || !fromDate || !toDate) {
+      setSlotStatus("idle");
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      setSlotStatus("checking");
+      try {
+        const params = {
+          instrument_id: instrument.id,
+          start_date: format(fromDate, "yyyy-MM-dd"),
+          end_date: format(toDate, "yyyy-MM-dd"),
+        };
+        await checkAvailability(params);
+        if (!cancelled) setSlotStatus("available");
+      } catch (err: any) {
+        if (err?.response?.status === 409) {
+          if (!cancelled) setSlotStatus("unavailable");
+        } else {
+          console.error("Availability check failed", err);
+          if (!cancelled) setSlotStatus("error");
+        }
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [instrument, fromDate, toDate]);
 
   if (loadingInstrument) {
     return (
@@ -165,11 +229,25 @@ const InstrumentDetails = () => {
   };
 
   const handleJoinQueue = async () => {
-    // Fill with the logged-in user email as available (static placeholder used here)
-    const success = await joinQueue(instrument.id, "Current User", "current.user@example.com");
+    if (!fromDate || !toDate) {
+      toast.error("Please select a booking period before joining the queue.");
+      return;
+    }
+
+    // TODO: replace with real logged-in user details when auth is added
+    const displayName = "Current User";
+    const email = "current.user@example.com";
+
+    const success = await joinQueue(
+      instrument.id,
+      displayName,
+      email,
+      format(fromDate, "yyyy-MM-dd"),
+      format(toDate, "yyyy-MM-dd"),
+    );
 
     if (success) {
-      toast.success("Joined waiting queue successfully.");
+      toast.success("You have successfully joined the queue.");
     } else {
       toast.error("Could not join queue. Please try again.");
     }
@@ -226,7 +304,7 @@ const InstrumentDetails = () => {
                   instrument.status === "blocked" && "bg-status-blocked/10 text-status-blocked border-status-blocked/20",
                 )}>
                   <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-current" />
-                  Status: {instrument.status === "available" ? "Available for immediate booking" : `Currently ${instrument.status}`}
+                  {instrument.status}
                 </Badge>
               </motion.div>
 
@@ -234,14 +312,20 @@ const InstrumentDetails = () => {
                 {instrument.description || "No description provided."}
               </motion.div>
 
-              <motion.div variants={fadeInUp} className="grid grid-cols-2 gap-3 text-sm">
+              <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <MapPin className="h-4 w-4 shrink-0" />
                   {instrument.location}
                 </div>
                 <div className="flex items-center gap-2 font-mono tabular-nums text-muted-foreground">
                   <Clock className="h-4 w-4 shrink-0" />
-                  {instrument.usageCost || instrument.usage_cost || "N/A"}
+                  {instrument.cost != null
+                    ? `₹${instrument.cost}`
+                    : instrument.usageCost
+                      ? instrument.usageCost
+                      : instrument.usage_cost
+                        ? `₹${instrument.usage_cost}`
+                        : "Not Available"}
                 </div>
               </motion.div>
 
@@ -358,26 +442,71 @@ const InstrumentDetails = () => {
                 </div>
               </motion.div>
 
-              {/* Actions */}
-              <motion.div variants={fadeInUp} className="flex gap-3 pt-2">
-                <Button
-                  className="flex-1 transition-transform active:scale-95"
-                  disabled={inBag || instrument.status === "blocked"}
-                  onClick={handleAddToBag}
-                >
-                  {inBag ? "Already in Bag" : "Add to Booking Bag"}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 transition-transform active:scale-95"
-                  disabled={!fromDate || !toDate}
-                  onClick={() => {
-                    handleAddToBag();
-                    navigate("/bag");
-                  }}
-                >
-                  Book Now
-                </Button>
+              {/* Actions: dynamic based on availability */}
+              <motion.div variants={fadeInUp} className="flex flex-col gap-2 pt-2">
+        {fromDate && toDate ? (
+          <>
+            {slotStatus === "available" && (
+              <Button
+                className="w-full transition-transform active:scale-95"
+                disabled={instrument.status === "blocked"}
+                onClick={() => {
+                  handleAddToBag();
+                  navigate("/bag");
+                }}
+              >
+                Submit Booking Request
+              </Button>
+            )}
+            {slotStatus === "unavailable" && (
+              <Button
+                variant="outline"
+                className="w-full transition-transform active:scale-95"
+                onClick={handleJoinQueue}
+              >
+                Join Queue
+              </Button>
+            )}
+            {slotStatus === "checking" && (
+              <Button disabled className="w-full" variant="outline">
+                Checking availability...
+              </Button>
+            )}
+            {slotStatus === "error" && (
+              <p className="text-xs text-red-500">Could not check availability. Please try again.</p>
+            )}
+          </>
+        ) : (
+          <Button
+            className="w-full transition-transform active:scale-95"
+            onClick={() => toast.error("Please select a booking period first.")}
+          >
+            Select dates to continue
+          </Button>
+        )}
+
+        {/* Keep bag-based flow available for power users */}
+        <div className="flex gap-3 pt-1 text-xs text-muted-foreground">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={inBag || instrument.status === "blocked"}
+            onClick={handleAddToBag}
+          >
+            {inBag ? "Already in Bag" : "Add to Booking Bag"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!fromDate || !toDate}
+            onClick={() => {
+              handleAddToBag();
+              navigate("/bag");
+            }}
+          >
+            Bag &amp; Review
+          </Button>
+        </div>
               </motion.div>
             </motion.div>
           </div>

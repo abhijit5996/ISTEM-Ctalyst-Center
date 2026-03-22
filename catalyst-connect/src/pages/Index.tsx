@@ -16,55 +16,62 @@ const Index = () => {
     <MainLayout>
       <PageTransition>
         {/* Hero */}
-        <section className="relative overflow-hidden border-b">
-          <div className="absolute inset-0">
-            <motion.img
-              src={heroImage}
-              alt="Research laboratory"
-              className="w-full h-full object-cover opacity-15"
-              initial={{ scale: 1.1 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/80" />
-          </div>
-          <div className="container relative py-12 sm:py-16 md:py-24">
-            <motion.div
-              className="max-w-2xl space-y-4 sm:space-y-6"
-              variants={staggerContainer}
-              initial="initial"
-              animate="animate"
-            >
-              <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 bg-accent/10 text-accent rounded-full px-3 py-1 text-xs font-medium">
-                <Microscope className="h-3 w-3" />
-                ISTEM Catalyst Center
-              </motion.div>
-              <motion.h1 variants={fadeInUp} className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.1]">
-                Precision Instrumentation
-                <br />
-                <span className="text-accent">on Demand</span>
-              </motion.h1>
-              <motion.p variants={fadeInUp} className="text-muted-foreground text-sm sm:text-base md:text-lg leading-relaxed max-w-[50ch]">
-                Browse, book, and manage access to 50+ research instruments. From electron microscopes to supercomputers — schedule your lab time in minutes.
-              </motion.p>
-              <motion.div variants={fadeInUp} className="flex flex-wrap gap-3">
-                <Button size="lg" asChild className="transition-transform active:scale-95">
-                  <a href="#instruments">
-                    Browse Instruments <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
-                </Button>
-                <Button variant="outline" size="lg" asChild className="transition-transform active:scale-95">
-                  <Link to="/admin">Admin Dashboard</Link>
-                </Button>
-              </motion.div>
-            </motion.div>
+        <section className="border-b">
+          <div className="max-w-7xl mx-auto px-6 py-12 sm:py-16 md:py-24">
+            <div className="flex flex-col-reverse gap-10 items-center justify-between lg:flex-row">
+              <div className="w-full lg:w-1/2">
+                <motion.div
+                  className="max-w-xl space-y-4 sm:space-y-6"
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                >
+                  <motion.div variants={fadeInUp} className="inline-flex flex-wrap items-center gap-2 text-xs font-medium">
+                    <span className="inline-flex items-center gap-2 bg-accent/10 text-accent rounded-full px-3 py-1">
+                      <Microscope className="h-3 w-3" />
+                      ISTEM Catalyst Center
+                    </span>
+                    <span className="inline-flex items-center gap-2 bg-secondary/10 text-secondary rounded-full px-3 py-1">
+                      <Zap className="h-3 w-3" />
+                      Adamas University
+                    </span>
+                  </motion.div>
+                  <motion.h1 variants={fadeInUp} className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-tight">
+                    Precision Instrumentation
+                    <br />
+                    <span className="text-accent">on Demand</span>
+                  </motion.h1>
+                  <motion.p variants={fadeInUp} className="text-muted-foreground text-base sm:text-lg leading-relaxed">
+                    Browse, book, and manage access to 50+ research instruments.
+                  </motion.p>
+                  <motion.div variants={fadeInUp} className="flex flex-wrap gap-3">
+                    <Button size="lg" asChild className="transition-transform active:scale-95">
+                      <a href="#instruments" className="flex items-center gap-2">
+                        Browse Instruments <ArrowRight className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              </div>
 
-            <motion.div
-              className="grid grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-12 max-w-lg"
-              variants={staggerContainer}
-              initial="initial"
-              animate="animate"
-            >
+              <div className="w-full lg:w-1/2 flex justify-center">
+                <div className="w-full max-w-md lg:max-w-lg">
+                  <img
+                    src={heroImage}
+                    alt="Lab illustration for ISTEM Catalyst Center"
+                    className="w-full h-auto object-contain rounded-xl shadow-lg"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <motion.div
+            className="grid grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-12 max-w-lg mx-auto"
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+          >
               {[
                 { val: "50+", label: "Instruments" },
                 { val: `${categories.length}+`, label: "Categories" },
@@ -76,7 +83,6 @@ const Index = () => {
                 </motion.div>
               ))}
             </motion.div>
-          </div>
         </section>
 
         {/* Bento Feature Cards */}

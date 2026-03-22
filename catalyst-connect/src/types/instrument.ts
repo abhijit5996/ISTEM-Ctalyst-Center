@@ -18,6 +18,8 @@ export interface Instrument {
   location: string;
   status: InstrumentStatus;
   usageCost: string;
+  cost?: number;
+  price?: string;
   image: string;
   description: string;
   bookedSlots: BookedSlot[];

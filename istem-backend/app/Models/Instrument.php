@@ -32,6 +32,11 @@ class Instrument extends Model
         return $this->hasMany(Booking::class, 'instrument_id');
     }
 
+    public function queues()
+    {
+        return $this->hasMany(\App\Models\Queue::class, 'instrument_id');
+    }
+
     public function getImageUrlAttribute()
     {
         if (!$this->image) {

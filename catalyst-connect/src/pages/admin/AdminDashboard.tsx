@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useBookingStore } from "@/store/bookingStore";
-import { Calendar, Microscope, Clock, Users } from "lucide-react";
+import { useRealtimePolling } from "@/hooks/useRealtimeUpdates";
+import { Calendar, Microscope, Clock, Users, Radio } from "lucide-react";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "@/components/PageTransition";
 
@@ -10,38 +11,67 @@ const AdminDashboard = () => {
   const dashboardData = useBookingStore((s) => s.dashboardData);
   const loadingBookings = useBookingStore((s) => s.loadingBookings);
   const loadingDashboard = useBookingStore((s) => s.loadingDashboard);
+  const realtimeEnabled = useBookingStore((s) => s.realtimeEnabled);
   const fetchBookings = useBookingStore((s) => s.fetchBookings);
   const fetchDashboard = useBookingStore((s) => s.fetchDashboard);
+  const startRealtimeUpdates = useBookingStore((s) => s.startRealtimeUpdates);
+  const stopRealtimeUpdates = useBookingStore((s) => s.stopRealtimeUpdates);
 
   useEffect(() => {
     fetchBookings();
     fetchDashboard();
-  }, [fetchBookings, fetchDashboard]);
+    
+    // Start real-time updates
+    startRealtimeUpdates();
+
+    // Cleanup on unmount
+    return () => {
+      stopRealtimeUpdates();
+    };
+  }, [fetchBookings, fetchDashboard, startRealtimeUpdates, stopRealtimeUpdates]);
 
   const knownInstruments = dashboardData?.instruments ?? instruments;
-  const knownBookings = dashboardData?.bookings ?? bookingRequests;
+  const knownBookings = dashboardData?.bookings ?? bookingRequests ?? [];
 
-  const stats = dashboardData?.stats || {
+  const computedStats = {
     total_instruments: knownInstruments.length,
     available: knownInstruments.filter((i) => i.status === "available").length,
     booked: knownInstruments.filter((i) => i.status === "booked").length,
     blocked: knownInstruments.filter((i) => i.status === "blocked").length,
-    totalBookings: knownInstruments.reduce((acc, inst) => acc + ((inst.bookedSlots || []).length), 0),
-    totalQueue: knownInstruments.reduce((acc, inst) => acc + ((inst.waitingQueue || []).length), 0),
+    total_bookings: knownBookings.length,
+    pending: knownBookings.filter((b) => b.status === "pending").length,
+    approved: knownBookings.filter((b) => b.status === "approved").length,
+    rejected: knownBookings.filter((b) => b.status === "rejected").length,
+    totalQueue: knownInstruments.reduce((acc, inst) => acc + (Array.isArray(inst.waitingQueue) ? inst.waitingQueue.length : 0), 0),
   };
 
+  const stats = dashboardData?.stats
+    ? {
+        ...computedStats,
+        ...dashboardData.stats,
+      }
+    : computedStats;
+
   const statCards = [
-    { label: "Total Instruments", value: stats.total_instruments ?? stats.total, icon: Microscope, color: "text-accent" },
-    { label: "Available Instruments", value: stats.available, icon: Calendar, color: "text-status-available" },
-    { label: "Booked Instruments", value: stats.booked, icon: Clock, color: "text-status-booked" },
-    { label: "Blocked Instruments", value: stats.blocked, icon: Users, color: "text-status-blocked" },
-    { label: "Total Bookings", value: stats.totalBookings ?? stats.total_bookings, icon: Calendar, color: "text-status-available" },
-    { label: "Queue Entries", value: stats.totalQueue || 0, icon: Users, color: "text-primary" },
+    { label: "Total Instruments", value: stats.total_instruments ?? 0, icon: Microscope, color: "text-accent" },
+    { label: "Total Bookings", value: stats.total_bookings ?? 0, icon: Calendar, color: "text-status-available" },
+    { label: "Pending Requests", value: stats.pending ?? 0, icon: Clock, color: "text-status-limited" },
+    { label: "Approved", value: stats.approved ?? 0, icon: Users, color: "text-status-available" },
+    { label: "Rejected", value: stats.rejected ?? 0, icon: Users, color: "text-status-booked" },
+    { label: "Queue Entries", value: stats.totalQueue ?? 0, icon: Users, color: "text-primary" },
   ];
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <motion.h1 variants={fadeInUp} initial="initial" animate="animate" className="text-lg sm:text-xl font-bold">Admin Dashboard</motion.h1>
+      <motion.div className="flex items-center justify-between" variants={fadeInUp} initial="initial" animate="animate">
+        <h1 className="text-lg sm:text-xl font-bold">Admin Dashboard</h1>
+        {realtimeEnabled && (
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-green-600 bg-green-50 dark:bg-green-950 px-3 py-1.5 rounded-full">
+            <Radio className="h-3 w-3 animate-pulse" />
+            <span>Live Updates Active</span>
+          </div>
+        )}
+      </motion.div>
 
       <motion.div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" variants={staggerContainer} initial="initial" animate="animate">
         {statCards.map((s) => (

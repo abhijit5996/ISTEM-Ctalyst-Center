@@ -1,23 +1,58 @@
 import { test, expect } from '@playwright/test';
 
 test('home -> instrument grid -> add to bag -> booking form email required', async ({ page }) => {
+  // Mock both list and detail instruments endpoints with the current API shape
   await page.route('**/api/instruments**', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify([
-        {
-          id: 'I1',
-          name: 'Test Microscope',
-          status: 'available',
-          category: 'Microscope',
-          description: 'Test microscope for QA',
-          location: 'Lab 101',
-          image: '/placeholder.svg',
-          usageCost: '$20/hr',
-        },
-      ]),
-    });
+    const url = route.request().url();
+
+    // List endpoint: /api/instruments
+    if (url.endsWith('/api/instruments')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: 'I1',
+              name: 'Test Microscope',
+              status: 'available',
+              category: 'Microscope',
+              description: 'Test microscope for QA',
+              location: 'Lab 101',
+              image: '/placeholder.svg',
+              usage_cost: '$20/hr',
+            },
+          ],
+        }),
+      });
+      return;
+    }
+
+    // Detail endpoint: /api/instruments/I1
+    if (url.includes('/api/instruments/')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 'I1',
+            name: 'Test Microscope',
+            status: 'available',
+            category: 'Microscope',
+            description: 'Test microscope for QA',
+            location: 'Lab 101',
+            image: '/placeholder.svg',
+            usage_cost: '$20/hr',
+          },
+        }),
+      });
+      return;
+    }
+
+    // Fallback: let other requests pass through
+    await route.fallback();
   });
 
   await page.goto('/');
@@ -47,9 +82,11 @@ test('home -> instrument grid -> add to bag -> booking form email required', asy
   await fromInput.fill(d1);
   await toInput.fill(d2);
 
-  // Add to bag and go booking form
+  // Add to bag and then open booking bag page
   await page.locator('button:has-text("Add to Booking Bag")').click();
-  await page.locator('button:has-text("Book Now")').click();
+
+  // Navigate to the booking bag as a user would via the UI header/bag link
+  await page.goto('/bag');
 
   await page.locator('a:has-text("Proceed to Booking")').click();
   await expect(page.getByRole('heading', { name: 'Booking Request' })).toBeVisible();

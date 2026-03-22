@@ -10,6 +10,11 @@ class Queue extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'id', 'instrument_id', 'booking_id', 'user_name', 'email', 'position'
+    'id', 'instrument_id', 'booking_id', 'user_id', 'user_name', 'email', 'queue_position', 'date', 'time_slot', 'status'
     ];
+
+  public function instrument()
+  {
+    return $this->belongsTo(\App\Models\Instrument::class, 'instrument_id');
+  }
 }
