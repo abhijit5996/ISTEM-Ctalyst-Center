@@ -37,3 +37,5 @@ RUN chown -R www-data:www-data /var/www/html \
 
 # Expose port
 EXPOSE 80
+
+CMD php artisan migrate --force && apache2-foreground
