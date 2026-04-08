@@ -6,9 +6,18 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:8080'],
+    'allowed_origins' => [
+        'http://localhost:5173',      // Vite dev server
+        'http://localhost:8080',      // Alternative dev
+        'http://localhost:3000',      // Node dev
+        env('FRONTEND_URL', 'http://localhost:5173'), // Production frontend
+    ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#https?://.*\.onrender\.com#',     // Render deployments
+        '#https?://.*\.vercel\.app#',       // Vercel deployments
+        '#https?://.*\.netlify\.app#',      // Netlify deployments
+    ],
 
     'allowed_headers' => ['*'],
 
@@ -16,6 +25,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ];
