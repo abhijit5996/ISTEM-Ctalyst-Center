@@ -21,21 +21,21 @@ WORKDIR /var/www/html
 # Copy project files
 COPY . /var/www/html
 
-# Set Apache Document Root to Laravel public folder
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Install Laravel dependencies
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
+# Set Apache Document Root to Laravel public folder (ONLY ONCE)
+RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+
 # Set permissions (VERY IMPORTANT for Laravel)
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage \
     && chmod -R 775 /var/www/html/bootstrap/cache
 
-# Expose default port (Render will override internally)
+# Expose default port
 EXPOSE 80
 
 # Start Apache with dynamic PORT (Render-compatible)
