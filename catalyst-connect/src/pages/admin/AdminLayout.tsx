@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Microscope as MicroscopeIcon, Calendar, ListOrdered, ArrowLeft, BarChart3, Menu, X } from "lucide-react";
+import { LayoutDashboard, Microscope as MicroscopeIcon, Calendar, ListOrdered, ArrowLeft, BarChart3, Menu, X, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBookingStore } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/instruments", label: "Instruments", icon: MicroscopeIcon },
+  { to: "/admin/instruments/import", label: "Import Instruments", icon: Upload },
   { to: "/admin/bookings", label: "Bookings", icon: Calendar },
   { to: "/admin/queue", label: "Queue List", icon: ListOrdered },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },

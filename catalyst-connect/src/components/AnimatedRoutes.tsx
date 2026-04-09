@@ -23,6 +23,7 @@ import AdminInstruments from "@/pages/admin/AdminInstruments";
 import AdminBookings from "@/pages/admin/AdminBookings";
 import AdminQueue from "@/pages/admin/AdminQueue";
 import AdminAnalytics from "@/pages/admin/AdminAnalytics";
+import ImportInstruments from "@/pages/admin/ImportInstruments";
 import { RequireAdminAuth, RequireUserAuth } from "@/components/RequireAuth";
 
 export function AnimatedRoutes() {
@@ -92,6 +93,7 @@ export function AnimatedRoutes() {
         >
           <Route index element={<AdminDashboard />} />
           <Route path="instruments" element={<AdminInstruments />} />
+          <Route path="instruments/import" element={<ImportInstruments />} />
           <Route path="bookings" element={<AdminBookings />} />
           <Route path="queue" element={<AdminQueue />} />
           <Route path="analytics" element={<AdminAnalytics />} />

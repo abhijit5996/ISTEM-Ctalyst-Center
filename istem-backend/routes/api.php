@@ -10,6 +10,7 @@ use App\Http\Controllers\AdminAuthController;
 Route::get('/instruments', [InstrumentController::class, 'index']);
 Route::get('/instruments/{id}', [InstrumentController::class, 'show']);
 Route::post('/instruments', [InstrumentController::class, 'store']);
+Route::post('/instruments/import', [InstrumentController::class, 'import']);
 Route::put('/instruments/{id}', [InstrumentController::class, 'update']);
 Route::delete('/instruments/{id}', [InstrumentController::class, 'delete']);
 
