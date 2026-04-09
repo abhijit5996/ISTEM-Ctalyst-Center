@@ -30,6 +30,13 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error("API response error:", error.response?.status, error.response?.data || error.message);
+    if (error.code === 'ECONNABORTED') {
+      console.error("Request timeout - Server did not respond within 30000ms");
+    }
+    if (!error.response) {
+      console.error("Network error - possibly CORS issue or server unreachable");
+      console.error("Target URL:", error.config?.url);
+    }
     return Promise.reject(error);
   }
 );

@@ -30,9 +30,18 @@ const Signup = () => {
       navigate(`/verify-otp?email=${encodeURIComponent(targetEmail)}`);
     } catch (err: any) {
       if (err?.response?.status === 422) {
-        toast.error("Email already in use");
+        // Show detailed validation errors
+        const errors = err?.response?.data?.errors;
+        if (errors) {
+          const errorMessages = Object.values(errors).flat().join(", ");
+          toast.error(`Validation error: ${errorMessages}`);
+        } else {
+          toast.error("Email already in use or validation failed");
+        }
+      } else if (err?.code === 'ECONNABORTED') {
+        toast.error("Request timeout - API server may be down");
       } else {
-        toast.error("Signup failed");
+        toast.error(err?.message || "Signup failed");
       }
     } finally {
       setLoading(false);
