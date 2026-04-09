@@ -9,6 +9,7 @@ This guide explains the CORS (Cross-Origin Resource Sharing) setup for the ISTEM
 ## 🎯 Current Setup
 
 ### URLs
+
 - **Backend API**: `https://istem-ctalyst-center.onrender.com`
 - **Frontend**: `https://istem-ctalyst-center-1.onrender.com`
 - **Local Dev Backend**: `http://localhost:8000`
@@ -29,6 +30,7 @@ The backend uses `fruitcake/laravel-cors` package. It's already added to `compos
 ```
 
 **Installation Command:**
+
 ```bash
 composer install
 ```
@@ -38,12 +40,13 @@ composer install
 **Location:** `config/cors.php`
 
 **Current Configuration:**
+
 ```php
 return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
-    
+
     'allowed_methods' => ['*'],
-    
+
     'allowed_origins' => [
         'http://localhost:5173',      // Vite dev server
         'http://localhost:8080',      // Alternative dev
@@ -51,13 +54,13 @@ return [
         'https://istem-ctalyst-center-1.onrender.com', // Production
         env('FRONTEND_URL', 'http://localhost:5173'),
     ],
-    
+
     'allowed_origins_patterns' => [
         '#https?://.*\.onrender\.com#',    // Render deployments
         '#https?://.*\.vercel\.app#',      // Vercel deployments
         '#https?://.*\.netlify\.app#',     // Netlify deployments
     ],
-    
+
     'allowed_headers' => ['*'],
     'exposed_headers' => [],
     'max_age' => 0,
@@ -108,11 +111,12 @@ const API = axios.create({
     Accept: "application/json",
   },
   timeout: 30000,
-  withCredentials: false,  // ⚠️ Important: false because we use Bearer tokens
+  withCredentials: false, // ⚠️ Important: false because we use Bearer tokens
 });
 ```
 
 **Key Points:**
+
 - ✅ `withCredentials: false` - Uses Bearer token authentication, not cookies
 - ✅ `Accept: "application/json"` - Tells server we accept JSON responses
 - ✅ `baseURL` automatically uses `VITE_API_URL` from environment
@@ -137,14 +141,14 @@ The `importInstruments()` function correctly handles multipart form data:
 export const importInstruments = (csvFile, images) => {
   const formData = new FormData();
   formData.append("file", csvFile);
-  
+
   images.forEach((img) => {
     formData.append("images[]", img);
   });
-  
+
   return API.post("/instruments/import", formData, {
     headers: {
-      "Content-Type": "multipart/form-data",  // Browser handles this
+      "Content-Type": "multipart/form-data", // Browser handles this
     },
   });
 };
@@ -157,6 +161,7 @@ export const importInstruments = (csvFile, images) => {
 ### Backend (istem-backend)
 
 1. **Install Dependencies:**
+
    ```bash
    composer install
    ```
@@ -179,6 +184,7 @@ export const importInstruments = (csvFile, images) => {
 ### Frontend (catalyst-connect)
 
 1. **Build with Environment Variables:**
+
    ```bash
    VITE_API_URL=https://istem-ctalyst-center.onrender.com/api npm run build
    ```
@@ -195,6 +201,7 @@ export const importInstruments = (csvFile, images) => {
 Open Developer Tools → Network tab and make an API call:
 
 **Look for:**
+
 - ✅ Request header: `Origin: https://istem-ctalyst-center-1.onrender.com`
 - ✅ Response header: `Access-Control-Allow-Origin: https://istem-ctalyst-center-1.onrender.com`
 - ✅ OPTIONS request (preflight) should return 200
@@ -202,17 +209,20 @@ Open Developer Tools → Network tab and make an API call:
 ### 2. If CORS Error Persists
 
 **A. Verify Exact Frontend URL**
+
 ```javascript
 // In browser console
-console.log(location.origin);  // Should be exact frontend URL
+console.log(location.origin); // Should be exact frontend URL
 ```
 
 **B. Check Backend Logs**
+
 ```bash
 tail -f storage/logs/laravel.log
 ```
 
 **C. Clear All Caches**
+
 ```bash
 php artisan config:clear
 php artisan cache:clear
@@ -221,6 +231,7 @@ php artisan optimize:clear
 ```
 
 **D. Test with curl**
+
 ```bash
 curl -X OPTIONS https://istem-ctalyst-center.onrender.com/api/instruments/import \
   -H "Origin: https://istem-ctalyst-center-1.onrender.com" \
@@ -238,6 +249,7 @@ Should return `Access-Control-Allow-Origin` header.
 **Cause:** CORS middleware not registered or frontend URL not in allowed list
 
 **Solution:**
+
 1. Verify `bootstrap/app.php` has `HandleCors::class` registered
 2. Check `config/cors.php` includes your frontend URL
 3. Restart backend server: `php artisan serve`
@@ -247,6 +259,7 @@ Should return `Access-Control-Allow-Origin` header.
 **Cause:** Routes not configured or middleware not running before route matching
 
 **Solution:**
+
 1. Ensure middleware is registered globally, not just in routes
 2. Verify `config/cors.php` has `'paths' => ['api/*', ...]`
 
@@ -255,6 +268,7 @@ Should return `Access-Control-Allow-Origin` header.
 **Cause:** Environment variables not set on Render
 
 **Solution:**
+
 1. Go to Render Dashboard
 2. Add environment variables:
    - `FRONTEND_URL=https://istem-ctalyst-center-1.onrender.com`
@@ -266,6 +280,7 @@ Should return `Access-Control-Allow-Origin` header.
 **Cause:** `supports_credentials: true` with `withCredentials: false`
 
 **Solution:**
+
 - Keep `supports_credentials: false` in `config/cors.php`
 - Keep `withCredentials: false` in axios.js
 - Use Bearer token authentication instead
@@ -275,6 +290,7 @@ Should return `Access-Control-Allow-Origin` header.
 ## 🔒 Security Best Practices
 
 ### DO ✅
+
 - ✅ Explicitly list allowed origins (not wildcard in production)
 - ✅ Use HTTPS in production
 - ✅ Set `supports_credentials: false` unless cookies needed
@@ -282,6 +298,7 @@ Should return `Access-Control-Allow-Origin` header.
 - ✅ Keep `max_age: 0` for strict CORS checks
 
 ### DON'T ❌
+
 - ❌ Don't use `'allowed_origins' => ['*']` in production
 - ❌ Don't set `supports_credentials: true` without explicit origins
 - ❌ Don't expose sensitive headers unnecessarily
