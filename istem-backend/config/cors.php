@@ -10,11 +10,12 @@ return [
         'http://localhost:5173',      // Vite dev server
         'http://localhost:8080',      // Alternative dev
         'http://localhost:3000',      // Node dev
-        env('FRONTEND_URL', 'http://localhost:5173'), // Production frontend
+        'https://istem-ctalyst-center-1.onrender.com', // Production frontend URL
+        env('FRONTEND_URL', 'http://localhost:5173'), // Env override
     ],
 
     'allowed_origins_patterns' => [
-        '#https?://.*\.onrender\.com#',     // Render deployments
+        '#https?://.*\.onrender\.com#',     // Render deployments (fallback)
         '#https?://.*\.vercel\.app#',       // Vercel deployments
         '#https?://.*\.netlify\.app#',      // Netlify deployments
     ],
@@ -25,6 +26,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    'supports_credentials' => false,
 
 ];
