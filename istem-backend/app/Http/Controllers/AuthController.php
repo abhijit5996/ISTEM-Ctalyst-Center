@@ -281,13 +281,18 @@ class AuthController extends Controller
         Log::info("🟢 [AuthController] OTP saved to database");
         Log::info("🟢 [AuthController] OTP expiry:", ['expires_at' => $user->otp_expires_at]);
 
-        Log::info("🔵 [AuthController] Sending OTP email to:", ['email' => $user->email]);
-        try {
-            Mail::to($user->email)->send(new OTPMail($otp));
-            Log::info("🟢 [AuthController] OTP email sent successfully");
-        } catch (\Exception $e) {
-            Log::error("🔴 [AuthController] Failed to send OTP email:", ['error' => $e->getMessage()]);
-        }
+        $email = $user->email;
+        $userId = $user->id;
+
+        Log::info("🔵 [AuthController] Queuing OTP email after response:", ['email' => $email, 'user_id' => $userId]);
+        dispatch(function () use ($email, $userId, $otp) {
+            try {
+                Mail::to($email)->send(new OTPMail($otp));
+                Log::info("🟢 [AuthController] OTP email sent successfully", ['email' => $email, 'user_id' => $userId]);
+            } catch (\Exception $e) {
+                Log::error("🔴 [AuthController] Failed to send OTP email:", ['error' => $e->getMessage(), 'email' => $email, 'user_id' => $userId]);
+            }
+        })->afterResponse();
     }
 
     private function getUserFromToken(Request $request): ?User
