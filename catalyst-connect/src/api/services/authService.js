@@ -1,7 +1,17 @@
 import API from "../axios";
 
 // User auth
-export const signup = (data) => API.post("/signup", data);
+export const signup = (data) => {
+  console.log("🔵 [authService.js] signup() called with data:", { ...data, password: "***" });
+  const promise = API.post("/signup", data);
+  promise.then((res) => {
+    console.log("🟢 [authService.js] signup() response:", res?.data);
+  }).catch((err) => {
+    console.log("🔴 [authService.js] signup() error:", err?.response?.data);
+  });
+  return promise;
+};
+
 export const login = (data) => API.post("/login", data);
 export const sendOtp = (data) => API.post("/send-otp", data);
 export const verifyOtp = (data) => API.post("/verify-otp", data);

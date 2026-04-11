@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -16,12 +17,18 @@ class AuthController extends Controller
 {
     public function signup(Request $request)
     {
+        Log::info("🔵 [AuthController] Step 1: signup() called");
+        Log::info("🔵 [AuthController] Request data:", $request->all());
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:8',
         ]);
+
+        Log::info("🟢 [AuthController] Step 2: Validation passed");
+        Log::info("🟢 [AuthController] Validated data:", $validated);
 
         $user = new User();
         $user->name = $validated['name'];
@@ -31,7 +38,12 @@ class AuthController extends Controller
         $user->email_verified = false;
         $user->save();
 
+        Log::info("🟢 [AuthController] Step 3: User created in database");
+        Log::info("🟢 [AuthController] User ID:", ['id' => $user->id, 'email' => $user->email]);
+
         $this->sendOtpForUser($user);
+
+        Log::info("🟢 [AuthController] Step 4: OTP sent successfully");
 
         return response()->json([
             'message' => 'otp_sent',
@@ -257,12 +269,25 @@ class AuthController extends Controller
 
     private function sendOtpForUser(User $user): void
     {
+        Log::info("🔵 [AuthController] sendOtpForUser() called for user:", ['email' => $user->email]);
+        
         $otp = (string) random_int(100000, 999999);
+        Log::info("🔵 [AuthController] Generated OTP:", ['otp' => $otp, 'user_id' => $user->id]);
+        
         $user->otp = $otp;
         $user->otp_expires_at = now()->addMinutes(5);
         $user->save();
+        
+        Log::info("🟢 [AuthController] OTP saved to database");
+        Log::info("🟢 [AuthController] OTP expiry:", ['expires_at' => $user->otp_expires_at]);
 
-        Mail::to($user->email)->send(new OTPMail($otp));
+        Log::info("🔵 [AuthController] Sending OTP email to:", ['email' => $user->email]);
+        try {
+            Mail::to($user->email)->send(new OTPMail($otp));
+            Log::info("🟢 [AuthController] OTP email sent successfully");
+        } catch (\Exception $e) {
+            Log::error("🔴 [AuthController] Failed to send OTP email:", ['error' => $e->getMessage()]);
+        }
     }
 
     private function getUserFromToken(Request $request): ?User
