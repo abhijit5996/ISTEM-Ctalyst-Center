@@ -76,6 +76,10 @@ const Signup = () => {
       } else if (err?.response?.status === 409) {
         console.log("🔴 [Signup.tsx] Email already in use");
         toast.error("Email already in use");
+      } else if (err?.response?.status === 500) {
+        const serverMessage = err?.response?.data?.message;
+        console.log("🔴 [Signup.tsx] Server error:", serverMessage);
+        toast.error(serverMessage || "Server error. Please try again later.");
       } else if (err?.code === 'ECONNABORTED') {
         console.log("🔴 [Signup.tsx] Request timeout");
         toast.error("Request timeout - API server may be down");
