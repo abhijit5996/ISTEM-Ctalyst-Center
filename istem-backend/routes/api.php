@@ -40,6 +40,7 @@ Route::post('/admin/queue/reject', [QueueController::class, 'reject']);
 Route::post('/signup', [AuthController::class, 'signup']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
+Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/verify-reset-otp', [AuthController::class, 'verifyResetOtp']);

@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\OTPMail;
+use App\Services\EmailService;
 use App\Models\Booking;
 use App\Models\Queue;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -95,6 +94,25 @@ class AuthController extends Controller
 
         if (! $this->sendOtpForUser($user)) {
             Log::error("🔴 [AuthController] OTP send failed", ['email' => $user->email, 'user_id' => $user->id]);
+            return response()->json([
+                'error' => 'otp_send_failed',
+                'message' => 'Failed to send OTP email. Please try again later.',
+            ], 500);
+        }
+
+        return response()->json(['message' => 'otp_sent']);
+    }
+
+    public function resendOtp(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $user = User::where('email', $validated['email'])->firstOrFail();
+
+        if (! $this->sendOtpForUser($user)) {
+            Log::error("🔴 [AuthController] OTP resend failed", ['email' => $user->email, 'user_id' => $user->id]);
             return response()->json([
                 'error' => 'otp_send_failed',
                 'message' => 'Failed to send OTP email. Please try again later.',
@@ -302,22 +320,13 @@ class AuthController extends Controller
         Log::info("🔵 [AuthController] Sending OTP email to:", ['email' => $user->email, 'user_id' => $user->id]);
 
         try {
-            Mail::mailer('smtp')->to($user->email)->send(new OTPMail($otp));
-            Log::info("🟢 [AuthController] OTP email sent successfully", ['email' => $user->email, 'user_id' => $user->id, 'mailer' => 'smtp']);
+            EmailService::sendOTP($user->email, $otp);
+            Log::info("🟢 [AuthController] OTP email sent successfully", ['email' => $user->email, 'user_id' => $user->id, 'provider' => 'resend']);
             return true;
         } catch (\Throwable $e) {
-            Log::error("🔴 [AuthController] SMTP mail failed:", ['error' => $e->getMessage(), 'email' => $user->email, 'user_id' => $user->id]);
+            Log::error("🔴 [AuthController] Resend mail failed:", ['error' => $e->getMessage(), 'email' => $user->email, 'user_id' => $user->id]);
+            return false;
         }
-
-        try {
-            Mail::mailer('smtp_alt')->to($user->email)->send(new OTPMail($otp));
-            Log::info("🟢 [AuthController] OTP email sent successfully", ['email' => $user->email, 'user_id' => $user->id, 'mailer' => 'smtp_alt']);
-            return true;
-        } catch (\Throwable $e) {
-            Log::error("🔴 [AuthController] SMTP alt mail failed:", ['error' => $e->getMessage(), 'email' => $user->email, 'user_id' => $user->id]);
-        }
-
-        return false;
     }
 
     private function getUserFromToken(Request $request): ?User
