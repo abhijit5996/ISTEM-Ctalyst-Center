@@ -10,6 +10,8 @@ return [
         'http://localhost:5173',      // Vite dev server
         'http://localhost:8080',      // Alternative dev
         'http://localhost:3000',      // Node dev
+        'https://istem-ctalyst-center-1.onrender.com', // Production frontend URL (Render)
+        'https://istem-ctalyst-center.onrender.com', // Production backend URL (Render)
         'https://istem-catalyst-center.onrender.com', // Production frontend URL
         'https://istem-catalyst-center-1.onrender.com', // Alternative production URL
         env('FRONTEND_URL', 'http://localhost:5173'), // Env override
@@ -27,6 +29,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ];
