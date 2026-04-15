@@ -31,5 +31,5 @@ export const getAdminExists = () => API.get("/admin/exists");
 
 // Google OAuth helper — opens redirect URL
 export const redirectToGoogleLogin = () => {
-  window.location.href = "http://localhost:8000/api/auth/google/redirect";
+  window.location.href = `${API.defaults.baseURL}/auth/google/redirect`;
 };

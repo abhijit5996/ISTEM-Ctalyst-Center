@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-$dotenvPath = realpath(__DIR__ . '/../../.env');
+$dotenvPath = realpath(__DIR__ . '/../.env');
 $env = [];
 if ($dotenvPath && file_exists($dotenvPath)) {
     foreach (file($dotenvPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {

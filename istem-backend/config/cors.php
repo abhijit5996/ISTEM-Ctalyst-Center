@@ -7,11 +7,12 @@ return [
     'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 
     'allowed_origins' => array_values(array_filter([
+        env('APP_URL'),
+        env('FRONTEND_URL'),
         'http://localhost:5173',
         'http://localhost:8080',
         'http://localhost:3000',
-        'https://istem-ctalyst-center-1.onrender.com',
-        env('FRONTEND_URL'),
+        'https://abhijit-das.kesug.com',
     ])),
 
     'allowed_origins_patterns' => [

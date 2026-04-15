@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-test('home -> instrument grid -> add to bag -> booking form email required', async ({ page }) => {
-  // Mock both list and detail instruments endpoints with the current API shape
+const APP_BASE = '/public/frontend';
+
+test.beforeEach(async ({ page }) => {
   await page.route('**/api/instruments**', async (route) => {
     const url = route.request().url();
 
-    // List endpoint: /api/instruments
     if (url.endsWith('/api/instruments')) {
       await route.fulfill({
         status: 200,
@@ -29,7 +29,6 @@ test('home -> instrument grid -> add to bag -> booking form email required', asy
       return;
     }
 
-    // Detail endpoint: /api/instruments/I1
     if (url.includes('/api/instruments/')) {
       await route.fulfill({
         status: 200,
@@ -51,27 +50,73 @@ test('home -> instrument grid -> add to bag -> booking form email required', asy
       return;
     }
 
-    // Fallback: let other requests pass through
     await route.fallback();
   });
+});
 
-  await page.goto('/');
+test('protected routes redirect unauthenticated users to login', async ({ page }) => {
+  await page.goto(`${APP_BASE}/bag`);
 
-  await expect(page.locator('text=Browse Instruments')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible();
+  await expect(page).toHaveURL(/\/public\/frontend\/login$/);
+});
+
+test('home -> instrument details -> bag -> booking form stays put on invalid email', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('auth_token', 'test-token');
+    window.localStorage.setItem('otp_verified', 'true');
+    window.localStorage.setItem('is_admin', 'false');
+    window.localStorage.setItem(
+      'auth_user',
+      JSON.stringify({
+        id: 'U1',
+        name: 'Test User',
+        email: 'test@example.com',
+      }),
+    );
+  });
+
+  await page.route('**/api/check-availability**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        available: true,
+      }),
+    });
+  });
+
+  await page.route('**/api/lock-slot', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true }),
+    });
+  });
+
+  await page.route('**/api/release-lock', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true }),
+    });
+  });
+
+  await page.goto(`${APP_BASE}/`);
+
+  await expect(page.getByRole('heading', { name: /Precision Instrumentation/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Browse Instruments/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Test Microscope' })).toBeVisible({ timeout: 15000 });
 
-  // Directly navigate to details page to avoid card click timing
-  await page.goto('/instrument/I1');
+  await page.goto(`${APP_BASE}/instrument/I1`);
 
   await expect(page.getByRole('heading', { name: 'Test Microscope' })).toBeVisible({ timeout: 10000 });
 
-  // On details page set dates directly in inputs
   const fromInput = page.locator('input[placeholder="YYYY-MM-DD"]').nth(0);
   const toInput = page.locator('input[placeholder="YYYY-MM-DD"]').nth(1);
-  // Ensure book now button is present
   await expect(page.locator('text=Add to Booking Bag')).toBeVisible();
 
-  // Fill date fields (today and tomorrow)
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
@@ -82,16 +127,13 @@ test('home -> instrument grid -> add to bag -> booking form email required', asy
   await fromInput.fill(d1);
   await toInput.fill(d2);
 
-  // Add to bag and then open booking bag page
-  await page.locator('button:has-text("Add to Booking Bag")').click();
+  await page.locator('button:has-text("Bag & Review")').click();
 
-  // Navigate to the booking bag as a user would via the UI header/bag link
-  await page.goto('/bag');
+  await expect(page.getByRole('heading', { name: 'Booking Bag' })).toBeVisible();
 
   await page.locator('a:has-text("Proceed to Booking")').click();
   await expect(page.getByRole('heading', { name: 'Booking Request' })).toBeVisible();
 
-  // check email required validation
   await page.fill('input#name', 'Test User');
   await page.fill('input#email', 'invalid-email');
   await page.fill('input#enrollment', 'ENR12345');
@@ -99,6 +141,5 @@ test('home -> instrument grid -> add to bag -> booking form email required', asy
 
   await page.locator('button:has-text("Submit Booking Request")').click();
 
-  // The form should not navigate away on invalid email and should stay on Booking Form.
-  await expect(page).toHaveURL(/.*booking-form/);
+  await expect(page).toHaveURL(/\/public\/frontend\/booking-form$/);
 });
