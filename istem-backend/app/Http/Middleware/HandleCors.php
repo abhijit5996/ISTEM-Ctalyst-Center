@@ -28,6 +28,8 @@ class HandleCors
         $allowedOrigins = config('cors.allowed_origins', []);
         $allowedPatterns = config('cors.allowed_origins_patterns', []);
         $origin = $request->header('Origin');
+        $allowedMethods = config('cors.allowed_methods', ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']);
+        $allowedHeaders = config('cors.allowed_headers', ['Accept', 'Authorization', 'Content-Type', 'Origin', 'X-Requested-With']);
 
         $isAllowed = false;
 
@@ -37,7 +39,7 @@ class HandleCors
         }
 
         // Check pattern-based origins
-        if (!$isAllowed) {
+        if (! $isAllowed && $origin) {
             foreach ($allowedPatterns as $pattern) {
                 if (preg_match($pattern, $origin)) {
                     $isAllowed = true;
@@ -52,17 +54,20 @@ class HandleCors
             if ($request->isMethod('OPTIONS')) {
                 return response('', 200)
                     ->header('Access-Control-Allow-Origin', $origin)
-                    ->header('Access-Control-Allow-Methods', implode(', ', config('cors.allowed_methods', ['*'])))
-                    ->header('Access-Control-Allow-Headers', implode(', ', config('cors.allowed_headers', ['*'])))
-                    ->header('Access-Control-Max-Age', config('cors.max_age', 0));
+                    ->header('Access-Control-Allow-Methods', implode(', ', $allowedMethods))
+                    ->header('Access-Control-Allow-Headers', implode(', ', $allowedHeaders))
+                    ->header('Access-Control-Max-Age', config('cors.max_age', 0))
+                    ->header('Access-Control-Allow-Credentials', config('cors.supports_credentials', false) ? 'true' : 'false')
+                    ->header('Vary', 'Origin');
             }
 
             // Add CORS headers to response
             $response = $next($request);
             $response->header('Access-Control-Allow-Origin', $origin);
-            $response->header('Access-Control-Allow-Methods', implode(', ', config('cors.allowed_methods', ['*'])));
-            $response->header('Access-Control-Allow-Headers', implode(', ', config('cors.allowed_headers', ['*'])));
+            $response->header('Access-Control-Allow-Methods', implode(', ', $allowedMethods));
+            $response->header('Access-Control-Allow-Headers', implode(', ', $allowedHeaders));
             $response->header('Access-Control-Max-Age', config('cors.max_age', 0));
+            $response->header('Vary', 'Origin');
 
             if (config('cors.supports_credentials', false)) {
                 $response->header('Access-Control-Allow-Credentials', 'true');

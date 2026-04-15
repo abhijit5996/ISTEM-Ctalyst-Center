@@ -6,7 +6,7 @@ import axios from "axios";
 const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const BACKEND_URL = isDevelopment 
   ? (import.meta.env.VITE_LOCAL_API_URL || "http://localhost:8000/api")
-  : (import.meta.env.VITE_API_URL || "https://istem-catalyst-center.onrender.com/api");
+  : (import.meta.env.VITE_API_URL || "https://istem-ctalyst-center.onrender.com/api");
 
 console.log("🔧 [axios.js] Environment Detection:");
 console.log(`  Hostname: ${window.location.hostname}`);

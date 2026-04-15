@@ -59,3 +59,7 @@ Route::get('/admin/exists', [AdminAuthController::class, 'exists']);
 Route::post('/admin/signup', [AdminAuthController::class, 'signup']);
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
 Route::get('/admin/me', [AdminAuthController::class, 'me']);
+
+Route::options('{any}', function () {
+	return response()->noContent();
+})->where('any', '.*');

@@ -15,7 +15,7 @@ APP_NAME=ISTEM Catalyst
 APP_ENV=production
 APP_KEY=base64:VvLIl9GDmsUdT2I/j8MEkGKgVsolVS0wmKk+qQ0csf4=
 APP_DEBUG=false
-APP_URL=https://istem-catalyst-center.onrender.com
+APP_URL=https://istem-ctalyst-center.onrender.com
 
 DB_CONNECTION=mysql
 DB_HOST=mainline.proxy.rlwy.net
@@ -59,7 +59,7 @@ SESSION_LIFETIME=120
 1. Make a test API request:
 
 ```bash
-curl https://istem-catalyst-center.onrender.com/api/signup \
+curl https://istem-ctalyst-center.onrender.com/api/signup \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"name":"Test","email":"test@example.com","password":"password123"}'

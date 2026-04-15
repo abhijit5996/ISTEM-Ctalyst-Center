@@ -11,7 +11,7 @@ Your Render backend is getting 500 errors because:
 
 ### Step 1: Update Render Environment Variables ⚠️ CRITICAL
 
-Go to your Render dashboard for `istem-catalyst-center`:
+Go to your Render dashboard for `istem-ctalyst-center`:
 
 1. Click **Environment**
 2. Set these variables (copy-paste them):
@@ -21,7 +21,7 @@ APP_NAME=ISTEM Catalyst
 APP_ENV=production
 APP_KEY=base64:VvLIl9GDmsUdT2I/j8MEkGKgVsolVS0wmKk+qQ0csf4=
 APP_DEBUG=false
-APP_URL=https://istem-catalyst-center.onrender.com
+APP_URL=https://istem-ctalyst-center.onrender.com
 
 DB_CONNECTION=mysql
 DB_HOST=mainline.proxy.rlwy.net
@@ -52,7 +52,7 @@ LOG_LEVEL=error
 Wait 2-3 minutes for redeploy to complete, then test:
 
 ```bash
-curl -X POST https://istem-catalyst-center.onrender.com/api/signup \
+curl -X POST https://istem-ctalyst-center.onrender.com/api/signup \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test User",
@@ -65,7 +65,7 @@ curl -X POST https://istem-catalyst-center.onrender.com/api/signup \
 
 ### Step 3: Test Frontend Signup
 
-1. Go to `https://istem-catalyst-center-1.onrender.com/signup`
+1. Go to `https://istem-ctalyst-center-1.onrender.com/signup`
 2. Fill in form and click "Sign up"
 3. Should see "OTP sent to your email" message ✅
 

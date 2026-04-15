@@ -29,31 +29,43 @@ class AuthController extends Controller
         Log::info("🟢 [AuthController] Step 2: Validation passed");
         Log::info("🟢 [AuthController] Validated data:", $validated);
 
-        $user = new User();
-        $user->name = $validated['name'];
-        $user->email = $validated['email'];
-        $user->phone = $validated['phone'] ?? null;
-        $user->password = Hash::make($validated['password']);
-        $user->email_verified = false;
-        $user->save();
+        try {
+            $user = new User();
+            $user->name = $validated['name'];
+            $user->email = $validated['email'];
+            $user->phone = $validated['phone'] ?? null;
+            $user->password = Hash::make($validated['password']);
+            $user->email_verified = false;
+            $user->save();
 
-        Log::info("🟢 [AuthController] Step 3: User created in database");
-        Log::info("🟢 [AuthController] User ID:", ['id' => $user->id, 'email' => $user->email]);
+            Log::info("🟢 [AuthController] Step 3: User created in database");
+            Log::info("🟢 [AuthController] User ID:", ['id' => $user->id, 'email' => $user->email]);
 
-        if (! $this->sendOtpForUser($user)) {
-            Log::error("🔴 [AuthController] Step 4: OTP send failed", ['email' => $user->email, 'user_id' => $user->id]);
+            if (! $this->sendOtpForUser($user)) {
+                Log::error("🔴 [AuthController] Step 4: OTP send failed", ['email' => $user->email, 'user_id' => $user->id]);
+                return response()->json([
+                    'error' => 'otp_send_failed',
+                    'message' => 'Failed to send OTP email. Please try again later.',
+                ], 500);
+            }
+
+            Log::info("🟢 [AuthController] Step 4: OTP sent successfully");
+
             return response()->json([
-                'error' => 'otp_send_failed',
-                'message' => 'Failed to send OTP email. Please try again later.',
+                'message' => 'otp_sent',
+                'email' => $user->email,
+            ], 201);
+        } catch (\Throwable $e) {
+            Log::error("🔴 [AuthController] Step 5: signup() failed", [
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
+            return response()->json([
+                'error' => 'signup_failed',
+                'message' => 'Unable to complete signup at this time. Please try again later.',
             ], 500);
         }
-
-        Log::info("🟢 [AuthController] Step 4: OTP sent successfully");
-
-        return response()->json([
-            'message' => 'otp_sent',
-            'email' => $user->email,
-        ], 201);
     }
 
     public function login(Request $request)
