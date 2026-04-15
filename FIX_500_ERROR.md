@@ -11,7 +11,7 @@ Your Render backend is getting 500 errors because:
 
 ### Step 1: Update Render Environment Variables ⚠️ CRITICAL
 
-Go to your Render dashboard for `istem-ctalyst-center`:
+Go to your Render dashboard for `istem-catalyst-center`:
 
 1. Click **Environment**
 2. Set these variables (copy-paste them):
@@ -65,7 +65,7 @@ curl -X POST https://istem-catalyst-center.onrender.com/api/signup \
 
 ### Step 3: Test Frontend Signup
 
-1. Go to `https://istem-catalyst-center.onrender.com/signup`
+1. Go to `https://istem-catalyst-center-1.onrender.com/signup`
 2. Fill in form and click "Sign up"
 3. Should see "OTP sent to your email" message ✅
 

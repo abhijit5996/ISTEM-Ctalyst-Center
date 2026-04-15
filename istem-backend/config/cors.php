@@ -6,21 +6,18 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'http://localhost:5173',      // Vite dev server
-        'http://localhost:8080',      // Alternative dev
-        'http://localhost:3000',      // Node dev
-        'https://istem-ctalyst-center-1.onrender.com', // Production frontend URL (Render)
-        'https://istem-ctalyst-center.onrender.com', // Production backend URL (Render)
-        'https://istem-catalyst-center.onrender.com', // Production frontend URL
-        'https://istem-catalyst-center-1.onrender.com', // Alternative production URL
-        env('FRONTEND_URL', 'http://localhost:5173'), // Env override
-    ],
+    'allowed_origins' => array_values(array_filter([
+        'http://localhost:5173',
+        'http://localhost:8080',
+        'http://localhost:3000',
+        env('FRONTEND_URL'),
+        env('APP_URL'),
+    ])),
 
     'allowed_origins_patterns' => [
-        '#https?://.*\.onrender\.com#',     // Render deployments (fallback)
-        '#https?://.*\.vercel\.app#',       // Vercel deployments
-        '#https?://.*\.netlify\.app#',      // Netlify deployments
+        '#^https?://.*\.onrender\.com$#',
+        '#^https?://.*\.vercel\.app$#',
+        '#^https?://.*\.netlify\.app$#',
     ],
 
     'allowed_headers' => ['*'],

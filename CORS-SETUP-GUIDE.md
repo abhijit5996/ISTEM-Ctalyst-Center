@@ -10,8 +10,8 @@ This guide explains the CORS (Cross-Origin Resource Sharing) setup for the ISTEM
 
 ### URLs
 
-- **Backend API**: `https://istem-ctalyst-center.onrender.com`
-- **Frontend**: `https://istem-ctalyst-center-1.onrender.com`
+- **Backend API**: `https://istem-catalyst-center.onrender.com`
+- **Frontend**: `https://istem-catalyst-center-1.onrender.com`
 - **Local Dev Backend**: `http://localhost:8000`
 - **Local Dev Frontend**: `http://localhost:5173`
 
@@ -51,14 +51,14 @@ return [
         'http://localhost:5173',      // Vite dev server
         'http://localhost:8080',      // Alternative dev
         'http://localhost:3000',      // Node dev
-        'https://istem-ctalyst-center-1.onrender.com', // Production
-        env('FRONTEND_URL', 'http://localhost:5173'),
+        env('FRONTEND_URL'),
+        env('APP_URL'),
     ],
 
     'allowed_origins_patterns' => [
-        '#https?://.*\.onrender\.com#',    // Render deployments
-        '#https?://.*\.vercel\.app#',      // Vercel deployments
-        '#https?://.*\.netlify\.app#',     // Netlify deployments
+        '#^https?://.*\.onrender\.com$#',
+        '#^https?://.*\.vercel\.app$#',
+        '#^https?://.*\.netlify\.app$#',
     ],
 
     'allowed_headers' => ['*'],
@@ -92,8 +92,8 @@ APP_URL=http://localhost:8000
 FRONTEND_URL=http://localhost:5173
 
 # Production on Render (set in Render Dashboard)
-APP_URL=https://istem-ctalyst-center.onrender.com
-FRONTEND_URL=https://istem-ctalyst-center-1.onrender.com
+APP_URL=https://istem-catalyst-center.onrender.com
+FRONTEND_URL=https://istem-catalyst-center-1.onrender.com
 ```
 
 ---
@@ -126,7 +126,7 @@ const API = axios.create({
 **Location:** `catalyst-connect/.env`
 
 ```env
-VITE_API_URL=https://istem-ctalyst-center.onrender.com/api
+VITE_API_URL=https://istem-catalyst-center.onrender.com/api
 ```
 
 This is used automatically during build.
@@ -167,10 +167,11 @@ export const importInstruments = (csvFile, images) => {
    ```
 
 2. **Set Environment Variables in Render Dashboard:**
-   - `APP_URL=https://istem-ctalyst-center.onrender.com`
-   - `FRONTEND_URL=https://istem-ctalyst-center-1.onrender.com`
-   - `APP_ENV=production`
-   - `APP_DEBUG=false`
+
+- `APP_URL=https://istem-catalyst-center.onrender.com`
+- `FRONTEND_URL=https://istem-catalyst-center-1.onrender.com`
+- `APP_ENV=production`
+- `APP_DEBUG=false`
 
 3. **Run Build Commands:**
    ```bash
@@ -186,7 +187,7 @@ export const importInstruments = (csvFile, images) => {
 1. **Build with Environment Variables:**
 
    ```bash
-   VITE_API_URL=https://istem-ctalyst-center.onrender.com/api npm run build
+   VITE_API_URL=https://istem-catalyst-center.onrender.com/api npm run build
    ```
 
 2. **Deploy:**
@@ -202,8 +203,8 @@ Open Developer Tools → Network tab and make an API call:
 
 **Look for:**
 
-- ✅ Request header: `Origin: https://istem-ctalyst-center-1.onrender.com`
-- ✅ Response header: `Access-Control-Allow-Origin: https://istem-ctalyst-center-1.onrender.com`
+- ✅ Request header: `Origin: https://istem-catalyst-center-1.onrender.com`
+- ✅ Response header: `Access-Control-Allow-Origin: https://istem-catalyst-center-1.onrender.com`
 - ✅ OPTIONS request (preflight) should return 200
 
 ### 2. If CORS Error Persists
@@ -233,8 +234,8 @@ php artisan optimize:clear
 **D. Test with curl**
 
 ```bash
-curl -X OPTIONS https://istem-ctalyst-center.onrender.com/api/instruments/import \
-  -H "Origin: https://istem-ctalyst-center-1.onrender.com" \
+curl -X OPTIONS https://istem-catalyst-center.onrender.com/api/instruments/import \
+  -H "Origin: https://istem-catalyst-center-1.onrender.com" \
   -v
 ```
 
@@ -271,8 +272,10 @@ Should return `Access-Control-Allow-Origin` header.
 
 1. Go to Render Dashboard
 2. Add environment variables:
-   - `FRONTEND_URL=https://istem-ctalyst-center-1.onrender.com`
-   - `APP_URL=https://istem-ctalyst-center.onrender.com`
+
+- `FRONTEND_URL=https://istem-catalyst-center-1.onrender.com`
+- `APP_URL=https://istem-catalyst-center.onrender.com`
+
 3. Redeploy
 
 ### Issue 4: Image upload works but CORS still fails
@@ -319,8 +322,8 @@ Test Microscope,Scientific,Lab-1,1000,available,Test instrument,test.jpg" > test
 touch test.jpg
 
 # Make request
-curl -X POST https://istem-ctalyst-center.onrender.com/api/instruments/import \
-  -H "Origin: https://istem-ctalyst-center-1.onrender.com" \
+curl -X POST https://istem-catalyst-center.onrender.com/api/instruments/import \
+  -H "Origin: https://istem-catalyst-center-1.onrender.com" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -F "file=@test.csv" \
   -F "images[]=@test.jpg"
@@ -332,7 +335,7 @@ curl -X POST https://istem-ctalyst-center.onrender.com/api/instruments/import \
 
 If CORS issues persist:
 
-1. Check Render logs: `curl https://istem-ctalyst-center.onrender.com/up`
+1. Check Render logs: `curl https://istem-catalyst-center.onrender.com/up`
 2. Verify URLs match exactly (no trailing slashes)
 3. Clear browser cache: Ctrl+Shift+Delete
 4. Try incognito mode (bypass cache)
