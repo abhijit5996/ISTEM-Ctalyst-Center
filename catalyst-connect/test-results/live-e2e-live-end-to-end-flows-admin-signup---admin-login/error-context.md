@@ -30,36 +30,22 @@
             - img [ref=e31]
     - main [ref=e32]:
       - generic [ref=e33]:
-        - heading "Create Account" [level=1] [ref=e34]
+        - heading "Admin Login" [level=1] [ref=e34]
         - generic [ref=e35]:
           - generic [ref=e36]:
-            - text: Name
-            - textbox "Name" [ref=e37]: E2E User 1776309496906
+            - text: Username
+            - textbox "Username" [ref=e37]: admin_1776309525304
           - generic [ref=e38]:
-            - text: Email
-            - textbox "Email" [ref=e39]: e2e.user.1776309496906@example.com
-          - generic [ref=e40]:
-            - text: Phone
-            - textbox "Phone" [ref=e41]: "9876543210"
-          - generic [ref=e42]:
             - text: Password
-            - textbox "Password" [ref=e43]: Password123!
-            - paragraph [ref=e44]: Minimum 8 characters
-          - generic [ref=e45]:
-            - text: Confirm Password
-            - textbox "Confirm Password" [ref=e46]: Password123!
-          - button "Sign up" [ref=e47] [cursor=pointer]
-          - paragraph [ref=e48]:
-            - text: Already have an account?
-            - link "Login" [ref=e49] [cursor=pointer]:
-              - /url: /public/frontend/login
-    - contentinfo [ref=e50]:
-      - generic [ref=e51]:
-        - generic [ref=e52]:
-          - img [ref=e53]
+            - textbox "Password" [active] [ref=e39]: AdminPass123!
+          - button "Login as Admin" [ref=e40] [cursor=pointer]
+    - contentinfo [ref=e41]:
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - img [ref=e44]
           - text: ISTEM Catalyst Center
-        - generic [ref=e57]:
-          - paragraph [ref=e58]: Precision Instrumentation on Demand.
-          - link "Admin Access" [ref=e59] [cursor=pointer]:
+        - generic [ref=e48]:
+          - paragraph [ref=e49]: Precision Instrumentation on Demand.
+          - link "Admin Access" [ref=e50] [cursor=pointer]:
             - /url: /public/frontend/admin/login
 ```

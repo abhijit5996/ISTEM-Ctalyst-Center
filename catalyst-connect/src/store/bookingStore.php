@@ -209,19 +209,25 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
 
   submitBooking: async (data) => {
     try {
-      const res = await createBooking({
+      const payload = {
         instrument_id: data.instrumentId,
         name: data.name,
         email: data.email,
         start_date: data.fromDate,
         end_date: data.toDate,
         user_type: data.userType,
-        identifier: data.enrollmentNumber || data.employeeId || null,
-        department: data.department,
-        program_or_school: data.program || data.school || null,
-project_title: data.projectTitle != null ? String(data.projectTitle) : "",
-      confidential_project: Boolean(data.isConfidential),
-      });
+        identifier: data.enrollmentNumber || data.employeeId || "N/A",
+        department: data.department || "N/A",
+        program_or_school: data.program || data.school || "N/A",
+        project_title: data.projectTitle != null ? String(data.projectTitle) : "N/A",
+        confidential_project: Boolean(data.isConfidential),
+      };
+      
+      console.log("🔵 [bookingStore] submitBooking payload:", payload);
+      const res = await createBooking(payload);
+      console.log("🟢 [bookingStore] submitBooking response:", res?.data);
+      console.log("🟢 [bookingStore] response.data.data:", res?.data?.data);
+      console.log("🟢 [bookingStore] response.data.data.id:", res?.data?.data?.id);
 
       if (res?.data?.data) {
         set((state) => ({
@@ -229,10 +235,14 @@ project_title: data.projectTitle != null ? String(data.projectTitle) : "",
         }));
       }
 
-      return res.data?.data?.id || 'success';
+      const requestId = res.data?.data?.id;
+      console.log("🟢 [bookingStore] Extracted requestId:", requestId);
+      return requestId || 'success';
     } catch (err: unknown) {
+      console.error("🔴 [bookingStore] submitBooking error:", err);
       const axiosError = err as { response?: { status?: number; data?: { message?: string } } };
       const conflictMessage = axiosError.response?.data?.message;
+      console.error("🔴 [bookingStore] error status:", axiosError.response?.status, "message:", conflictMessage);
       if (axiosError.response?.status === 409 || conflictMessage === 'slot_already_booked' || conflictMessage === 'slot_unavailable') {
         throw new Error('slot_unavailable');
       }
