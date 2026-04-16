@@ -37,8 +37,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    setupFiles: ["./src/test/setup.php"],
+    include: ["src/**/*.{test,spec}.php"],
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

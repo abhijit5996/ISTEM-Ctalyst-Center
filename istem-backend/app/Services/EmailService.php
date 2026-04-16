@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use Resend\Resend;
 use Illuminate\Support\Facades\Log;
 
 class EmailService
@@ -10,7 +9,7 @@ class EmailService
     public static function sendOTP(string $to, string $otp): bool
     {
         try {
-            $resend = Resend::client(env('RESEND_API_KEY'));
+            $resend = \Resend::client(env('RESEND_API_KEY'));
 
             $response = $resend->emails->send([
                 'from' => 'onboarding@resend.dev',

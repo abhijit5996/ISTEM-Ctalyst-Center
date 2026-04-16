@@ -64,10 +64,10 @@ class BookingController extends Controller
                 'start_date' => $validated['start_date'],
                 'end_date' => $validated['end_date'],
                 'user_type' => $validated['user_type'] ?? 'student',
-                'identifier' => $validated['identifier'] ?? null,
-                'department' => $validated['department'] ?? null,
-                'program_or_school' => $validated['program_or_school'] ?? null,
-                'project_title' => $validated['project_title'] ?? null,
+                'identifier' => $validated['identifier'] ?? 'N/A',
+                'department' => $validated['department'] ?? 'N/A',
+                'program_or_school' => $validated['program_or_school'] ?? 'N/A',
+                'project_title' => $validated['project_title'] ?? 'N/A',
                 'confidential_project' => $validated['confidential_project'] ?? false,
                 'status' => 'pending',
             ]);
@@ -127,6 +127,7 @@ class BookingController extends Controller
             'time' => 'sometimes|string',
             'start_date' => 'sometimes|date',
             'end_date' => 'sometimes|date|after_or_equal:start_date',
+            'email' => 'sometimes|email',
         ]);
 
         $instrumentId = $validated['instrument_id'];
@@ -136,7 +137,12 @@ class BookingController extends Controller
         // Auto-delete expired locks before checking
         BookingLock::where('expires_at', '<', now())->delete();
 
-        $hasConflict = SlotService::hasConflict($instrumentId, $start, $end);
+        $hasConflict = SlotService::hasConflict(
+            $instrumentId,
+            $start,
+            $end,
+            $validated['email'] ?? null
+        );
 
         if ($hasConflict) {
             return response()->json([

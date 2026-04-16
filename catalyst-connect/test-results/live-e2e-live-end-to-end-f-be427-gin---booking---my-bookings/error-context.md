@@ -1,0 +1,101 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - link "ISTEM Catalyst CenterISTEM" [ref=e6] [cursor=pointer]:
+          - /url: /public/frontend/
+          - img [ref=e7]
+          - text: ISTEM Catalyst CenterISTEM
+        - navigation [ref=e11]:
+          - link "Instruments" [ref=e12] [cursor=pointer]:
+            - /url: /public/frontend/
+          - link "Booking Bag" [ref=e13] [cursor=pointer]:
+            - /url: /public/frontend/bag
+        - generic [ref=e14]:
+          - button "Toggle theme" [ref=e15] [cursor=pointer]:
+            - img [ref=e16]
+            - img [ref=e22]
+          - link "1" [ref=e24] [cursor=pointer]:
+            - /url: /public/frontend/bag
+            - button "1" [ref=e25]:
+              - img [ref=e26]
+              - generic [ref=e29]: "1"
+          - button "S" [ref=e30] [cursor=pointer]
+          - button [ref=e31] [cursor=pointer]:
+            - img [ref=e32]
+    - main [ref=e33]:
+      - generic [ref=e35]:
+        - heading "Booking Request" [level=1] [ref=e36]
+        - paragraph [ref=e37]: Complete the form to submit your instrument booking request.
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e40]:
+              - generic [ref=e41]:
+                - text: Instrument
+                - generic [ref=e42]: E2E Instrument 1776273332335
+                - generic [ref=e43]: INS69DFC7B4CA3D6
+              - generic [ref=e44]:
+                - text: From Date *
+                - generic [ref=e45]:
+                  - textbox "YYYY-MM-DD" [ref=e46]: 2026-04-18
+                  - button [ref=e47] [cursor=pointer]:
+                    - img [ref=e48]
+              - generic [ref=e50]:
+                - text: To Date *
+                - generic [ref=e51]:
+                  - textbox "YYYY-MM-DD" [ref=e52]: 2026-04-19
+                  - button [ref=e53] [cursor=pointer]:
+                    - img [ref=e54]
+            - generic [ref=e56]: "Selected: 18 Apr 2026 → 19 Apr 2026"
+          - generic [ref=e57]:
+            - text: User Type
+            - generic [ref=e58]:
+              - button "Student" [ref=e59] [cursor=pointer]
+              - button "Employee" [ref=e60] [cursor=pointer]
+          - generic [ref=e61]:
+            - generic [ref=e62]: Student Name *
+            - textbox "Student Name *" [ref=e63]: Seeded User 1776273333435
+          - generic [ref=e64]:
+            - text: Email Address *
+            - textbox "Email Address *" [ref=e65]: seeded.user.1776273333435@example.com
+          - generic [ref=e66]:
+            - generic [ref=e67]:
+              - text: Enrollment Number *
+              - textbox "Enrollment Number *" [ref=e68]: ENR-1776273333435
+            - generic [ref=e69]:
+              - text: Department *
+              - textbox "Department *" [ref=e70]: Quality Assurance
+            - generic [ref=e71]:
+              - text: Program
+              - combobox [ref=e72] [cursor=pointer]:
+                - text: Select Program
+                - img [ref=e73]
+              - combobox [ref=e75]
+            - generic [ref=e76]:
+              - text: Project Title
+              - textbox "Project Title" [ref=e77]: Seeded User Booking
+            - generic [ref=e78]:
+              - checkbox "This is a confidential project"
+              - generic [ref=e79]: This is a confidential project
+          - generic [ref=e80]:
+            - heading "Booking Summary" [level=3] [ref=e81]
+            - generic [ref=e82]:
+              - text: E2E Instrument 1776273332335
+              - generic [ref=e83]: 2026-04-18 → 2026-04-19
+          - button "Submit Booking Request" [ref=e85] [cursor=pointer]
+    - contentinfo [ref=e86]:
+      - generic [ref=e87]:
+        - generic [ref=e88]:
+          - img [ref=e89]
+          - text: ISTEM Catalyst Center
+        - generic [ref=e93]:
+          - paragraph [ref=e94]: Precision Instrumentation on Demand.
+          - link "Admin Access" [ref=e95] [cursor=pointer]:
+            - /url: /public/frontend/admin/signup
+```

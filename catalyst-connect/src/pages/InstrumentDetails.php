@@ -33,6 +33,7 @@ const InstrumentDetails = () => {
   const lockSlot = useBookingStore((s) => s.lockSlot);
   const releaseLock = useBookingStore((s) => s.releaseLock);
   const bag = useBookingStore((s) => s.bag);
+  const user = useBookingStore((s) => s.user);
 
   const instrumentFromStore = instruments.find((i) => i.id === id) as ExtendedInstrument | undefined;
   const [instrument, setInstrument] = useState<ExtendedInstrument | null>(instrumentFromStore ?? null);
@@ -81,6 +82,7 @@ const InstrumentDetails = () => {
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
 	const [slotStatus, setSlotStatus] = useState<"idle" | "checking" | "available" | "unavailable" | "error">("idle");
+  const activeUserEmail = user?.email || "current.user@example.com";
 
   const inBag = bag.some((b) => b.instrument.id === id);
 
@@ -112,19 +114,19 @@ const InstrumentDetails = () => {
         instrument_id: instrument.id,
         start_date: format(fromDate, "yyyy-MM-dd"),
         end_date: format(toDate, "yyyy-MM-dd"),
-        email: "current.user@example.com",
+        email: activeUserEmail,
       });
 
       return () => {
         releaseLock({
           instrument_id: instrument.id,
-          email: "current.user@example.com",
+          email: activeUserEmail,
         });
       };
     }
 
     return undefined;
-  }, [fromDate, toDate, instrument, lockSlot, releaseLock]);
+  }, [fromDate, toDate, instrument, lockSlot, releaseLock, activeUserEmail]);
 
   // Dynamic availability check when user selects date range
   useEffect(() => {
@@ -141,6 +143,7 @@ const InstrumentDetails = () => {
           instrument_id: instrument.id,
           start_date: format(fromDate, "yyyy-MM-dd"),
           end_date: format(toDate, "yyyy-MM-dd"),
+          email: activeUserEmail,
         };
         await checkAvailability(params);
         if (!cancelled) setSlotStatus("available");
@@ -158,7 +161,7 @@ const InstrumentDetails = () => {
     return () => {
       cancelled = true;
     };
-  }, [instrument, fromDate, toDate]);
+  }, [instrument, fromDate, toDate, activeUserEmail]);
 
   if (loadingInstrument) {
     return (
@@ -234,9 +237,8 @@ const InstrumentDetails = () => {
       return;
     }
 
-    // TODO: replace with real logged-in user details when auth is added
-    const displayName = "Current User";
-    const email = "current.user@example.com";
+    const displayName = user?.name || "Current User";
+    const email = activeUserEmail;
 
     const success = await joinQueue(
       instrument.id,
